@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pizza Dashboard</title>
+<title>Pastas Para Pizza</title>
+<meta name="theme-color" content="#201B16" />
+<link rel="manifest" href="./manifest.json" />
+<link rel="apple-touch-icon" href="./icon-192.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Pastas Para Pizza" />
 
 <!-- Tailwind (CDN, zero-build) -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -75,6 +82,11 @@ const OWNER_EMAIL = "andgut25@gmail.com"; // must match firestore.rules exactly
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+// Offline mode: cache data locally so the app keeps working during wifi drops,
+// then syncs automatically when the connection returns.
+db.enablePersistence({
+  synchronizeTabs: true
+}).catch(() => {});
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 const APP_NAME = "Pastas Para Pizza";
 const CATEGORIES = ['Pizza', 'Drink', 'Side', 'Dessert'];
@@ -386,6 +398,64 @@ const IconPizza = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__
   r: "0.6",
   fill: "currentColor"
 }));
+const IconChart = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("line", {
+  x1: "4",
+  y1: "20",
+  x2: "20",
+  y2: "20"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "6",
+  y: "12",
+  width: "3",
+  height: "8"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "11",
+  y: "7",
+  width: "3",
+  height: "13"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "16",
+  y: "10",
+  width: "3",
+  height: "10"
+}));
+const IconDownload = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+}), /*#__PURE__*/React.createElement("polyline", {
+  points: "7 10 12 15 17 10"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "12",
+  y1: "15",
+  x2: "12",
+  y2: "3"
+}));
+
+/* ----------------------------- CSV export helpers ----------------------------- */
+
+function csvEscape(v) {
+  return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+}
+function downloadCSV(filename, rows) {
+  const csv = '\uFEFF' + rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], {
+    type: 'text/csv;charset=utf-8;'
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+const fmtDateCSV = iso => {
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-CR') + ' ' + d.toLocaleTimeString('es-CR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 
 /* ----------------------------- small UI atoms ----------------------------- */
 
@@ -1769,6 +1839,331 @@ function Setup({
   }, confirmClear ? 'Click again to confirm' : 'Clear all activity')));
 }
 
+/* ----------------------------- Reports ----------------------------- */
+
+const REPORT_PRESETS = [{
+  id: 'today',
+  label: 'Today'
+}, {
+  id: 'week',
+  label: 'This week'
+}, {
+  id: 'month',
+  label: 'This month'
+}, {
+  id: 'lastMonth',
+  label: 'Last month'
+}, {
+  id: 'custom',
+  label: 'Custom'
+}];
+function Reports({
+  sales,
+  expenses,
+  businessName
+}) {
+  const [preset, setPreset] = useState('month');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const range = useMemo(() => {
+    const now = new Date();
+    const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const tomorrow = new Date(startOfDay(now).getTime() + 86400000);
+    let start, end;
+    if (preset === 'today') {
+      start = startOfDay(now);
+      end = tomorrow;
+    } else if (preset === 'week') {
+      const d = startOfDay(now);
+      const day = (d.getDay() + 6) % 7;
+      start = new Date(d.getTime() - day * 86400000);
+      end = tomorrow;
+    } else if (preset === 'month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = tomorrow;
+    } else if (preset === 'lastMonth') {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else {
+      start = from ? new Date(from + 'T00:00:00') : startOfDay(now);
+      end = to ? new Date(new Date(to + 'T00:00:00').getTime() + 86400000) : tomorrow;
+    }
+    return {
+      start,
+      end
+    };
+  }, [preset, from, to]);
+  const inRange = iso => {
+    const t = new Date(iso);
+    return t >= range.start && t < range.end;
+  };
+  const rSales = useMemo(() => sales.filter(s => inRange(s.time)), [sales, range]);
+  const rExpenses = useMemo(() => expenses.filter(e => inRange(e.time)), [expenses, range]);
+  const salesTotal = rSales.reduce((a, s) => a + s.total, 0);
+  const expensesTotal = rExpenses.reduce((a, e) => a + e.amount, 0);
+  const profit = salesTotal - expensesTotal;
+  const avgTicket = rSales.length ? salesTotal / rSales.length : 0;
+  const dayCount = Math.max(1, Math.round((Math.min(range.end.getTime(), Date.now() + 86400000) - range.start.getTime()) / 86400000));
+  const daily = useMemo(() => {
+    if (dayCount > 92) return null;
+    return [...Array(dayCount)].map((_, i) => {
+      const d = new Date(range.start.getTime() + i * 86400000);
+      const key = d.toDateString();
+      const total = rSales.filter(s => new Date(s.time).toDateString() === key).reduce((a, s) => a + s.total, 0);
+      return {
+        day: d.toLocaleDateString('es-CR', {
+          day: 'numeric',
+          month: dayCount > 8 ? 'numeric' : 'short'
+        }),
+        total
+      };
+    });
+  }, [rSales, range, dayCount]);
+  const byPayment = useMemo(() => {
+    const m = {};
+    rSales.forEach(s => {
+      m[s.payment || 'Other'] = (m[s.payment || 'Other'] || 0) + s.total;
+    });
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  }, [rSales]);
+  const byExpenseCat = useMemo(() => {
+    const m = {};
+    rExpenses.forEach(e => {
+      m[e.category || 'Other'] = (m[e.category || 'Other'] || 0) + e.amount;
+    });
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  }, [rExpenses]);
+  const topItems = useMemo(() => {
+    const m = {};
+    rSales.forEach(s => s.items.forEach(it => {
+      if (!m[it.name]) m[it.name] = {
+        qty: 0,
+        revenue: 0
+      };
+      m[it.name].qty += it.qty;
+      m[it.name].revenue += (it.price || 0) * it.qty;
+    }));
+    return Object.entries(m).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 8);
+  }, [rSales]);
+  const rangeLabel = `${range.start.toLocaleDateString('es-CR')} – ${new Date(range.end.getTime() - 86400000).toLocaleDateString('es-CR')}`;
+  const exportSales = () => {
+    const rows = [['Date', 'Logged by', 'Items', 'Payment', 'Total (CRC)']];
+    [...rSales].sort((a, b) => new Date(a.time) - new Date(b.time)).forEach(s => {
+      rows.push([fmtDateCSV(s.time), s.by || '', s.items.map(it => `${it.qty}x ${it.name}`).join('; '), s.payment || '', s.total]);
+    });
+    rows.push([]);
+    rows.push(['TOTAL', '', '', '', salesTotal]);
+    downloadCSV(`sales_${businessName.replace(/\s+/g, '-')}_${rangeLabel.replace(/[/\s–]+/g, '-')}.csv`, rows);
+  };
+  const exportExpenses = () => {
+    const rows = [['Date', 'Logged by', 'Category', 'Description', 'Amount (CRC)']];
+    [...rExpenses].sort((a, b) => new Date(a.time) - new Date(b.time)).forEach(e => {
+      rows.push([fmtDateCSV(e.time), e.by || '', e.category || '', e.description || '', e.amount]);
+    });
+    rows.push([]);
+    rows.push(['TOTAL', '', '', '', expensesTotal]);
+    downloadCSV(`expenses_${businessName.replace(/\s+/g, '-')}_${rangeLabel.replace(/[/\s–]+/g, '-')}.csv`, rows);
+  };
+  const dateInputStyle = {
+    background: 'var(--crust-2)',
+    color: 'var(--flour)',
+    border: '1px solid var(--line)',
+    colorScheme: 'dark'
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "Reports",
+    subtitle: `Showing ${rangeLabel}`
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1.5 mb-3 flex-wrap items-center"
+  }, REPORT_PRESETS.map(p => /*#__PURE__*/React.createElement("button", {
+    key: p.id,
+    onClick: () => setPreset(p.id),
+    className: "px-3 py-1.5 rounded-full text-xs font-mono",
+    style: {
+      background: preset === p.id ? 'var(--tomato)' : 'var(--crust-2)',
+      color: preset === p.id ? 'var(--flour)' : 'var(--flour-dim)'
+    }
+  }, p.label)), preset === 'custom' && /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 items-center ml-1"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: from,
+    onChange: e => setFrom(e.target.value),
+    className: "px-2 py-1 rounded-md text-xs font-mono outline-none",
+    style: dateInputStyle
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs"
+  }, "to"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: to,
+    onChange: e => setTo(e.target.value),
+    className: "px-2 py-1 rounded-md text-xs font-mono outline-none",
+    style: dateInputStyle
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6"
+  }, /*#__PURE__*/React.createElement(StatCard, {
+    label: "Sales",
+    value: fmtCRC(salesTotal),
+    sub: `${rSales.length} ticket(s)`,
+    tone: "basil",
+    Icon: IconCart
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Expenses",
+    value: fmtCRC(expensesTotal),
+    sub: `${rExpenses.length} entries`,
+    tone: "tomato",
+    Icon: IconWallet
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Profit",
+    value: fmtCRC(profit),
+    sub: "sales − expenses",
+    tone: profit >= 0 ? 'basil' : 'tomato',
+    Icon: IconChart
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Avg ticket",
+    value: fmtCRC(avgTicket),
+    sub: "per sale",
+    tone: "semolina",
+    Icon: IconClipboard
+  })), daily && daily.length > 1 && /*#__PURE__*/React.createElement("div", {
+    className: "p-4 mb-6",
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-3"
+  }, "Sales per day"), /*#__PURE__*/React.createElement(SalesTrendChart, {
+    data: daily
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "p-4",
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-3"
+  }, "Sales by payment method"), byPayment.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm"
+  }, "No sales in this range."), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-2"
+  }, byPayment.map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    className: "flex justify-between text-sm font-mono"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, k), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    }
+  }, fmtCRC(v), " · ", salesTotal ? Math.round(v / salesTotal * 100) : 0, "%"))))), /*#__PURE__*/React.createElement("div", {
+    className: "p-4",
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-3"
+  }, "Expenses by category"), byExpenseCat.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm"
+  }, "No expenses in this range."), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-2"
+  }, byExpenseCat.map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    className: "flex justify-between text-sm font-mono"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, k), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    }
+  }, fmtCRC(v), " · ", expensesTotal ? Math.round(v / expensesTotal * 100) : 0, "%")))))), /*#__PURE__*/React.createElement("div", {
+    className: "p-4 mb-6",
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-3"
+  }, "Top items by revenue"), topItems.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm"
+  }, "No sales in this range."), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-2"
+  }, topItems.map(([name, d]) => /*#__PURE__*/React.createElement("div", {
+    key: name,
+    className: "flex justify-between text-sm font-mono"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    }
+  }, d.qty, " sold · ", fmtCRC(d.revenue)))))), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 flex-wrap"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: exportSales,
+    disabled: rSales.length === 0,
+    className: "px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 disabled:opacity-30",
+    style: {
+      background: 'var(--tomato)',
+      color: 'var(--flour)'
+    }
+  }, /*#__PURE__*/React.createElement(IconDownload, {
+    size: 15
+  }), " Export sales CSV"), /*#__PURE__*/React.createElement("button", {
+    onClick: exportExpenses,
+    disabled: rExpenses.length === 0,
+    className: "px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 disabled:opacity-30",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)'
+    }
+  }, /*#__PURE__*/React.createElement(IconDownload, {
+    size: 15
+  }), " Export expenses CSV")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs mt-2"
+  }, "CSV files open directly in Excel or Google Sheets — handy for your accountant."));
+}
+
 /* ----------------------------- Auth screens ----------------------------- */
 
 function LoadingScreen() {
@@ -2126,6 +2521,10 @@ function App() {
     label: 'Expenses',
     Icon: IconWallet
   }, {
+    id: 'reports',
+    label: 'Reports',
+    Icon: IconChart
+  }, {
     id: 'setup',
     label: 'Setup',
     Icon: IconSettings
@@ -2261,6 +2660,10 @@ function App() {
   }), tab === 'expenses' && /*#__PURE__*/React.createElement(Expenses, {
     expenses: expenses,
     onAdd: addExpense
+  }), tab === 'reports' && /*#__PURE__*/React.createElement(Reports, {
+    sales: sales,
+    expenses: expenses,
+    businessName: settings.businessName || 'Pastas-Para-Pizza'
   }), tab === 'setup' && /*#__PURE__*/React.createElement(Setup, {
     settings: settings,
     menu: menu,
@@ -2310,6 +2713,14 @@ function App() {
 }
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(/*#__PURE__*/React.createElement(App, null));
+
+// Register the service worker so the app can be installed to the home screen
+// and the page itself loads even without a connection (after the first visit).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
 
 </script>
 </body>
