@@ -11,7 +11,6 @@
 <!-- React 18 -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
 
 <!-- Firebase (compat, no-build CDN build — officially supported by Firebase for sites without a bundler) -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
@@ -50,8 +49,14 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 <body>
 <div id="root"></div>
 
-<script type="text/babel" data-presets="react">
-const { useState, useEffect, useMemo, useCallback, useRef } = React;
+<script>
+const {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef
+} = React;
 
 /* =========================================================================
    EDIT THESE TWO THINGS BEFORE DEPLOYING — see README.md
@@ -62,7 +67,7 @@ const firebaseConfig = {
   projectId: "pastas-para-pizza",
   storageBucket: "pastas-para-pizza.firebasestorage.app",
   messagingSenderId: "199064799335",
-  appId: "1:199064799335:web:fc1ef69eaed71eb56cacc2",
+  appId: "1:199064799335:web:fc1ef69eaed71eb56cacc2"
 };
 const OWNER_EMAIL = "angut25@gmail.com"; // must match firestore.rules exactly
 /* ========================================================================= */
@@ -71,194 +76,542 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
-
 const APP_NAME = "Pizza Team";
 const CATEGORIES = ['Pizza', 'Drink', 'Side', 'Dessert'];
 const PAYMENT_METHODS = ['Cash', 'Card', 'SINPE'];
 const EXPENSE_CATEGORIES = ['Ingredients', 'Utilities', 'Rent', 'Salaries', 'Equipment', 'Other'];
 const ORDER_STATUSES = ['Pending', 'Preparing', 'Ready', 'Delivered'];
-const DEFAULT_SETTINGS = { businessName: 'Mi Pizzería' };
-
-const SEED_MENU = [
-  { name: 'Margherita', price: 6500, category: 'Pizza' },
-  { name: 'Pepperoni', price: 7200, category: 'Pizza' },
-  { name: 'Hawaiana', price: 7000, category: 'Pizza' },
-  { name: 'Cuatro Quesos', price: 7800, category: 'Pizza' },
-  { name: 'Vegetariana', price: 6800, category: 'Pizza' },
-  { name: 'Coca-Cola 355ml', price: 1200, category: 'Drink' },
-  { name: 'Agua embotellada', price: 900, category: 'Drink' },
-  { name: 'Pan de ajo', price: 2500, category: 'Side' },
-  { name: 'Tiramisú', price: 2800, category: 'Dessert' },
-];
-const SEED_INGREDIENTS = [
-  { name: 'Masa de pizza', unit: 'bolas', stock: 40, threshold: 10 },
-  { name: 'Mozzarella', unit: 'kg', stock: 8, threshold: 2 },
-  { name: 'Salsa de tomate', unit: 'l', stock: 5, threshold: 1 },
-  { name: 'Pepperoni', unit: 'kg', stock: 3, threshold: 1 },
-  { name: 'Jamón', unit: 'kg', stock: 2, threshold: 1 },
-  { name: 'Piña', unit: 'kg', stock: 1.5, threshold: 0.5 },
-  { name: 'Mezcla de quesos', unit: 'kg', stock: 4, threshold: 1 },
-];
+const DEFAULT_SETTINGS = {
+  businessName: 'Mi Pizzería'
+};
+const SEED_MENU = [{
+  name: 'Margherita',
+  price: 6500,
+  category: 'Pizza'
+}, {
+  name: 'Pepperoni',
+  price: 7200,
+  category: 'Pizza'
+}, {
+  name: 'Hawaiana',
+  price: 7000,
+  category: 'Pizza'
+}, {
+  name: 'Cuatro Quesos',
+  price: 7800,
+  category: 'Pizza'
+}, {
+  name: 'Vegetariana',
+  price: 6800,
+  category: 'Pizza'
+}, {
+  name: 'Coca-Cola 355ml',
+  price: 1200,
+  category: 'Drink'
+}, {
+  name: 'Agua embotellada',
+  price: 900,
+  category: 'Drink'
+}, {
+  name: 'Pan de ajo',
+  price: 2500,
+  category: 'Side'
+}, {
+  name: 'Tiramisú',
+  price: 2800,
+  category: 'Dessert'
+}];
+const SEED_INGREDIENTS = [{
+  name: 'Masa de pizza',
+  unit: 'bolas',
+  stock: 40,
+  threshold: 10
+}, {
+  name: 'Mozzarella',
+  unit: 'kg',
+  stock: 8,
+  threshold: 2
+}, {
+  name: 'Salsa de tomate',
+  unit: 'l',
+  stock: 5,
+  threshold: 1
+}, {
+  name: 'Pepperoni',
+  unit: 'kg',
+  stock: 3,
+  threshold: 1
+}, {
+  name: 'Jamón',
+  unit: 'kg',
+  stock: 2,
+  threshold: 1
+}, {
+  name: 'Piña',
+  unit: 'kg',
+  stock: 1.5,
+  threshold: 0.5
+}, {
+  name: 'Mezcla de quesos',
+  unit: 'kg',
+  stock: 4,
+  threshold: 1
+}];
 
 /* ----------------------------- helpers ----------------------------- */
 
-const fmtCRC = (n) => new Intl.NumberFormat('es-CR', { style: 'currency', currency: 'CRC', maximumFractionDigits: 0 }).format(n || 0);
-const fmtTime = (iso) => new Date(iso).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
-const isToday = (iso) => new Date(iso).toDateString() === new Date().toDateString();
-
+const fmtCRC = n => new Intl.NumberFormat('es-CR', {
+  style: 'currency',
+  currency: 'CRC',
+  maximumFractionDigits: 0
+}).format(n || 0);
+const fmtTime = iso => new Date(iso).toLocaleTimeString('es-CR', {
+  hour: '2-digit',
+  minute: '2-digit'
+});
+const isToday = iso => new Date(iso).toDateString() === new Date().toDateString();
 function useCollection(name, defaultValue, enabled) {
   const [data, setData] = useState(defaultValue);
   useEffect(() => {
     if (!enabled) return;
-    const unsub = db.collection(name).onSnapshot(
-      (snap) => setData(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
-      (err) => console.error(name, err.message)
-    );
+    const unsub = db.collection(name).onSnapshot(snap => setData(snap.docs.map(d => ({
+      id: d.id,
+      ...d.data()
+    }))), err => console.error(name, err.message));
     return unsub;
   }, [name, enabled]);
   return data;
 }
-
 function useDocValue(path, defaultValue, enabled) {
   const [data, setData] = useState(defaultValue);
   useEffect(() => {
     if (!enabled) return;
-    const unsub = db.doc(path).onSnapshot(
-      (snap) => setData(snap.exists ? snap.data() : defaultValue),
-      (err) => console.error(path, err.message)
-    );
+    const unsub = db.doc(path).onSnapshot(snap => setData(snap.exists ? snap.data() : defaultValue), err => console.error(path, err.message));
     return unsub;
   }, [path, enabled]);
   return data;
 }
-
 async function clearCollection(name, docs) {
   for (let i = 0; i < docs.length; i += 400) {
     const chunk = docs.slice(i, i + 400);
     const batch = db.batch();
-    chunk.forEach((d) => batch.delete(db.collection(name).doc(d.id)));
+    chunk.forEach(d => batch.delete(db.collection(name).doc(d.id)));
     await batch.commit();
   }
 }
 
 /* ----------------------------- icons ----------------------------- */
 
-function IconBase({ children, size = 18, style }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
-      {children}
-    </svg>
-  );
+function IconBase({
+  children,
+  size = 18,
+  style
+}) {
+  return /*#__PURE__*/React.createElement("svg", {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: style
+  }, children);
 }
-const IconDashboard = (p) => <IconBase {...p}><rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" /><rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" /></IconBase>;
-const IconCart = (p) => <IconBase {...p}><circle cx="9" cy="20" r="1" /><circle cx="18" cy="20" r="1" /><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.8h7.2a2 2 0 0 0 2-1.6L21 8H6" /></IconBase>;
-const IconClipboard = (p) => <IconBase {...p}><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" /><path d="M9 11h6M9 15h6M9 19h3" /></IconBase>;
-const IconPackage = (p) => <IconBase {...p}><path d="M21 8l-9-5-9 5 9 5 9-5z" /><path d="M3 8v8l9 5 9-5V8" /><path d="M12 13v8" /></IconBase>;
-const IconWallet = (p) => <IconBase {...p}><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18" /><circle cx="16" cy="14" r="1" /></IconBase>;
-const IconSettings = (p) => <IconBase {...p}><line x1="4" y1="6" x2="20" y2="6" /><circle cx="9" cy="6" r="2" /><line x1="4" y1="12" x2="20" y2="12" /><circle cx="15" cy="12" r="2" /><line x1="4" y1="18" x2="20" y2="18" /><circle cx="9" cy="18" r="2" /></IconBase>;
-const IconPlus = (p) => <IconBase {...p}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></IconBase>;
-const IconMinus = (p) => <IconBase {...p}><line x1="5" y1="12" x2="19" y2="12" /></IconBase>;
-const IconX = (p) => <IconBase {...p}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></IconBase>;
-const IconCheck = (p) => <IconBase {...p}><polyline points="20 6 9 17 4 12" /></IconBase>;
-const IconAlert = (p) => <IconBase {...p}><path d="M10.3 3.86l-8.2 14.2A1.5 1.5 0 0 0 3.4 20.4h17.2a1.5 1.5 0 0 0 1.3-2.34l-8.2-14.2a1.5 1.5 0 0 0-2.6 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></IconBase>;
-const IconTrash = (p) => <IconBase {...p}><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></IconBase>;
-const IconArrowRight = (p) => <IconBase {...p}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></IconBase>;
-const IconPizza = (p) => <IconBase {...p}><path d="M2 12L12 2l10 10" /><path d="M4 13c1.5 5 4 8 8 9 4-1 6.5-4 8-9-2.5 1.5-5.5 2.4-8 2.4S6.5 14.5 4 13z" /><circle cx="9" cy="16" r="0.6" fill="currentColor" /><circle cx="13" cy="17.5" r="0.6" fill="currentColor" /></IconBase>;
+const IconDashboard = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("rect", {
+  x: "3",
+  y: "3",
+  width: "7",
+  height: "9",
+  rx: "1"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "14",
+  y: "3",
+  width: "7",
+  height: "5",
+  rx: "1"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "14",
+  y: "12",
+  width: "7",
+  height: "9",
+  rx: "1"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "3",
+  y: "16",
+  width: "7",
+  height: "5",
+  rx: "1"
+}));
+const IconCart = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("circle", {
+  cx: "9",
+  cy: "20",
+  r: "1"
+}), /*#__PURE__*/React.createElement("circle", {
+  cx: "18",
+  cy: "20",
+  r: "1"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M3 3h2l2.4 12.2a2 2 0 0 0 2 1.8h7.2a2 2 0 0 0 2-1.6L21 8H6"
+}));
+const IconClipboard = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("rect", {
+  x: "5",
+  y: "4",
+  width: "14",
+  height: "17",
+  rx: "2"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M9 11h6M9 15h6M9 19h3"
+}));
+const IconPackage = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M21 8l-9-5-9 5 9 5 9-5z"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M3 8v8l9 5 9-5V8"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M12 13v8"
+}));
+const IconWallet = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("rect", {
+  x: "3",
+  y: "6",
+  width: "18",
+  height: "13",
+  rx: "2"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M3 10h18"
+}), /*#__PURE__*/React.createElement("circle", {
+  cx: "16",
+  cy: "14",
+  r: "1"
+}));
+const IconSettings = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("line", {
+  x1: "4",
+  y1: "6",
+  x2: "20",
+  y2: "6"
+}), /*#__PURE__*/React.createElement("circle", {
+  cx: "9",
+  cy: "6",
+  r: "2"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "4",
+  y1: "12",
+  x2: "20",
+  y2: "12"
+}), /*#__PURE__*/React.createElement("circle", {
+  cx: "15",
+  cy: "12",
+  r: "2"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "4",
+  y1: "18",
+  x2: "20",
+  y2: "18"
+}), /*#__PURE__*/React.createElement("circle", {
+  cx: "9",
+  cy: "18",
+  r: "2"
+}));
+const IconPlus = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("line", {
+  x1: "12",
+  y1: "5",
+  x2: "12",
+  y2: "19"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "5",
+  y1: "12",
+  x2: "19",
+  y2: "12"
+}));
+const IconMinus = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("line", {
+  x1: "5",
+  y1: "12",
+  x2: "19",
+  y2: "12"
+}));
+const IconX = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("line", {
+  x1: "18",
+  y1: "6",
+  x2: "6",
+  y2: "18"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "6",
+  y1: "6",
+  x2: "18",
+  y2: "18"
+}));
+const IconCheck = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("polyline", {
+  points: "20 6 9 17 4 12"
+}));
+const IconAlert = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M10.3 3.86l-8.2 14.2A1.5 1.5 0 0 0 3.4 20.4h17.2a1.5 1.5 0 0 0 1.3-2.34l-8.2-14.2a1.5 1.5 0 0 0-2.6 0z"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "12",
+  y1: "9",
+  x2: "12",
+  y2: "13"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "12",
+  y1: "17",
+  x2: "12.01",
+  y2: "17"
+}));
+const IconTrash = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("polyline", {
+  points: "3 6 5 6 21 6"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+}));
+const IconArrowRight = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("line", {
+  x1: "5",
+  y1: "12",
+  x2: "19",
+  y2: "12"
+}), /*#__PURE__*/React.createElement("polyline", {
+  points: "12 5 19 12 12 19"
+}));
+const IconPizza = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M2 12L12 2l10 10"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M4 13c1.5 5 4 8 8 9 4-1 6.5-4 8-9-2.5 1.5-5.5 2.4-8 2.4S6.5 14.5 4 13z"
+}), /*#__PURE__*/React.createElement("circle", {
+  cx: "9",
+  cy: "16",
+  r: "0.6",
+  fill: "currentColor"
+}), /*#__PURE__*/React.createElement("circle", {
+  cx: "13",
+  cy: "17.5",
+  r: "0.6",
+  fill: "currentColor"
+}));
 
 /* ----------------------------- small UI atoms ----------------------------- */
 
 function TicketHoles() {
-  return (
-    <div style={{ position: 'absolute', left: -1, top: 6, bottom: 6, width: 10, backgroundImage: 'radial-gradient(circle 4px, var(--bg) 4px, transparent 4.5px)', backgroundRepeat: 'repeat-y', backgroundSize: '10px 18px', backgroundPosition: 'center' }} />
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: -1,
+      top: 6,
+      bottom: 6,
+      width: 10,
+      backgroundImage: 'radial-gradient(circle 4px, var(--bg) 4px, transparent 4.5px)',
+      backgroundRepeat: 'repeat-y',
+      backgroundSize: '10px 18px',
+      backgroundPosition: 'center'
+    }
+  });
 }
-function Ticket({ children, style = {}, className = '' }) {
-  return (
-    <div className={`relative ${className}`} style={{ background: 'var(--crust)', border: '1px solid var(--line)', borderRadius: 8, paddingLeft: 16, ...style }}>
-      <TicketHoles />
-      {children}
-    </div>
-  );
+function Ticket({
+  children,
+  style = {},
+  className = ''
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: `relative ${className}`,
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 8,
+      paddingLeft: 16,
+      ...style
+    }
+  }, /*#__PURE__*/React.createElement(TicketHoles, null), children);
 }
-function StatCard({ label, value, sub, tone = 'flour', Icon }) {
-  return (
-    <div style={{ background: 'var(--crust)', border: '1px solid var(--line)', borderRadius: 10 }} className="p-4 flex flex-col gap-1">
-      <div className="flex items-center justify-between">
-        <span style={{ color: 'var(--flour-dim)' }} className="text-xs uppercase tracking-wide">{label}</span>
-        {Icon && <Icon size={15} style={{ color: 'var(--flour-dim)' }} />}
-      </div>
-      <span className="font-display" style={{ color: `var(--${tone})`, fontSize: 30, lineHeight: 1.1, fontWeight: 800 }}>{value}</span>
-      {sub && <span style={{ color: 'var(--flour-dim)' }} className="text-xs font-mono">{sub}</span>}
-    </div>
-  );
+function StatCard({
+  label,
+  value,
+  sub,
+  tone = 'flour',
+  Icon
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    },
+    className: "p-4 flex flex-col gap-1"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs uppercase tracking-wide"
+  }, label), Icon && /*#__PURE__*/React.createElement(Icon, {
+    size: 15,
+    style: {
+      color: 'var(--flour-dim)'
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "font-display",
+    style: {
+      color: `var(--${tone})`,
+      fontSize: 30,
+      lineHeight: 1.1,
+      fontWeight: 800
+    }
+  }, value), sub && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs font-mono"
+  }, sub));
 }
-function NavItem({ Icon, label, active, onClick, badge }) {
-  return (
-    <button onClick={onClick} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors" style={{ background: active ? 'var(--crust-2)' : 'transparent', color: active ? 'var(--flour)' : 'var(--flour-dim)', fontWeight: active ? 600 : 500 }}>
-      <Icon size={17} />
-      <span className="flex-1 text-left">{label}</span>
-      {badge > 0 && <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full" style={{ background: 'var(--tomato)', color: 'var(--flour)' }}>{badge}</span>}
-    </button>
-  );
+function NavItem({
+  Icon,
+  label,
+  active,
+  onClick,
+  badge
+}) {
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: onClick,
+    className: "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors",
+    style: {
+      background: active ? 'var(--crust-2)' : 'transparent',
+      color: active ? 'var(--flour)' : 'var(--flour-dim)',
+      fontWeight: active ? 600 : 500
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    size: 17
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "flex-1 text-left"
+  }, label), badge > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] font-mono px-1.5 py-0.5 rounded-full",
+    style: {
+      background: 'var(--tomato)',
+      color: 'var(--flour)'
+    }
+  }, badge));
 }
-function Toast({ message }) {
+function Toast({
+  message
+}) {
   if (!message) return null;
-  return (
-    <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full shadow-lg font-mono text-sm flex items-center gap-2 toast-in" style={{ background: 'var(--basil)', color: '#0F1A0E' }}>
-      <IconCheck size={15} /> {message}
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full shadow-lg font-mono text-sm flex items-center gap-2 toast-in",
+    style: {
+      background: 'var(--basil)',
+      color: '#0F1A0E'
+    }
+  }, /*#__PURE__*/React.createElement(IconCheck, {
+    size: 15
+  }), " ", message);
 }
-function SectionHeader({ title, subtitle, right }) {
-  return (
-    <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
-      <div>
-        <h2 className="font-display" style={{ color: 'var(--flour)', fontSize: 24, fontWeight: 800 }}>{title}</h2>
-        {subtitle && <p style={{ color: 'var(--flour-dim)' }} className="text-sm mt-0.5">{subtitle}</p>}
-      </div>
-      {right}
-    </div>
-  );
+function SectionHeader({
+  title,
+  subtitle,
+  right
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "flex items-start justify-between mb-4 flex-wrap gap-3"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    className: "font-display",
+    style: {
+      color: 'var(--flour)',
+      fontSize: 24,
+      fontWeight: 800
+    }
+  }, title), subtitle && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm mt-0.5"
+  }, subtitle)), right);
 }
 
 /* ----------------------------- item picker ----------------------------- */
 
-function ItemPicker({ menu, selection, onAdd, onRemove, filterCat, setFilterCat }) {
+function ItemPicker({
+  menu,
+  selection,
+  onAdd,
+  onRemove,
+  filterCat,
+  setFilterCat
+}) {
   const cats = ['All', ...CATEGORIES];
-  const filtered = filterCat === 'All' ? menu : menu.filter((m) => m.category === filterCat);
-  return (
-    <div>
-      <div className="flex gap-1.5 mb-3 flex-wrap">
-        {cats.map((c) => (
-          <button key={c} onClick={() => setFilterCat(c)} className="px-3 py-1 rounded-full text-xs font-mono" style={{ background: filterCat === c ? 'var(--tomato)' : 'var(--crust-2)', color: filterCat === c ? 'var(--flour)' : 'var(--flour-dim)' }}>{c}</button>
-        ))}
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {filtered.map((item) => {
-          const sel = selection.find((s) => s.id === item.id);
-          return (
-            <div key={item.id} style={{ background: 'var(--crust-2)', border: '1px solid var(--line)', borderRadius: 8 }} className="p-3 flex flex-col gap-2">
-              <div className="flex-1">
-                <div style={{ color: 'var(--flour)' }} className="text-sm font-medium leading-tight">{item.name}</div>
-                <div style={{ color: 'var(--flour-dim)' }} className="text-xs font-mono mt-0.5">{fmtCRC(item.price)}</div>
-              </div>
-              <div className="flex items-center justify-between">
-                <button onClick={() => onRemove(item)} disabled={!sel} className="w-7 h-7 rounded-md flex items-center justify-center disabled:opacity-30" style={{ background: 'var(--bg)', color: 'var(--flour)' }}><IconMinus size={13} /></button>
-                <span className="font-mono text-sm" style={{ color: 'var(--semolina)', minWidth: 18, textAlign: 'center' }}>{sel ? sel.qty : 0}</span>
-                <button onClick={() => onAdd(item)} className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: 'var(--tomato)', color: 'var(--flour)' }}><IconPlus size={13} /></button>
-              </div>
-            </div>
-          );
-        })}
-        {filtered.length === 0 && <div style={{ color: 'var(--flour-dim)' }} className="text-sm col-span-full py-6 text-center">No items in this category yet — add some in Setup.</div>}
-      </div>
-    </div>
-  );
+  const filtered = filterCat === 'All' ? menu : menu.filter(m => m.category === filterCat);
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1.5 mb-3 flex-wrap"
+  }, cats.map(c => /*#__PURE__*/React.createElement("button", {
+    key: c,
+    onClick: () => setFilterCat(c),
+    className: "px-3 py-1 rounded-full text-xs font-mono",
+    style: {
+      background: filterCat === c ? 'var(--tomato)' : 'var(--crust-2)',
+      color: filterCat === c ? 'var(--flour)' : 'var(--flour-dim)'
+    }
+  }, c))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 sm:grid-cols-3 gap-2"
+  }, filtered.map(item => {
+    const sel = selection.find(s => s.id === item.id);
+    return /*#__PURE__*/React.createElement("div", {
+      key: item.id,
+      style: {
+        background: 'var(--crust-2)',
+        border: '1px solid var(--line)',
+        borderRadius: 8
+      },
+      className: "p-3 flex flex-col gap-2"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex-1"
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: 'var(--flour)'
+      },
+      className: "text-sm font-medium leading-tight"
+    }, item.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: 'var(--flour-dim)'
+      },
+      className: "text-xs font-mono mt-0.5"
+    }, fmtCRC(item.price))), /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center justify-between"
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => onRemove(item),
+      disabled: !sel,
+      className: "w-7 h-7 rounded-md flex items-center justify-center disabled:opacity-30",
+      style: {
+        background: 'var(--bg)',
+        color: 'var(--flour)'
+      }
+    }, /*#__PURE__*/React.createElement(IconMinus, {
+      size: 13
+    })), /*#__PURE__*/React.createElement("span", {
+      className: "font-mono text-sm",
+      style: {
+        color: 'var(--semolina)',
+        minWidth: 18,
+        textAlign: 'center'
+      }
+    }, sel ? sel.qty : 0), /*#__PURE__*/React.createElement("button", {
+      onClick: () => onAdd(item),
+      className: "w-7 h-7 rounded-md flex items-center justify-center",
+      style: {
+        background: 'var(--tomato)',
+        color: 'var(--flour)'
+      }
+    }, /*#__PURE__*/React.createElement(IconPlus, {
+      size: 13
+    }))));
+  }), filtered.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm col-span-full py-6 text-center"
+  }, "No items in this category yet — add some in Setup.")));
 }
 
 /* ----------------------------- chart ----------------------------- */
 
-function SalesTrendChart({ data }) {
+function SalesTrendChart({
+  data
+}) {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
   useEffect(() => {
@@ -266,351 +619,1257 @@ function SalesTrendChart({ data }) {
     if (chartRef.current) chartRef.current.destroy();
     chartRef.current = new Chart(canvasRef.current.getContext('2d'), {
       type: 'bar',
-      data: { labels: data.map((d) => d.day), datasets: [{ data: data.map((d) => d.total), backgroundColor: '#C7401C', borderRadius: 4, maxBarThickness: 36 }] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => fmtCRC(ctx.parsed.y) } } },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: '#B7AB8E', font: { size: 11 } } },
-          y: { grid: { color: 'rgba(242,232,210,0.08)' }, ticks: { color: '#B7AB8E', font: { size: 10 }, callback: (v) => `₡${Math.round(v / 1000)}k` } },
-        },
+      data: {
+        labels: data.map(d => d.day),
+        datasets: [{
+          data: data.map(d => d.total),
+          backgroundColor: '#C7401C',
+          borderRadius: 4,
+          maxBarThickness: 36
+        }]
       },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => fmtCRC(ctx.parsed.y)
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              color: '#B7AB8E',
+              font: {
+                size: 11
+              }
+            }
+          },
+          y: {
+            grid: {
+              color: 'rgba(242,232,210,0.08)'
+            },
+            ticks: {
+              color: '#B7AB8E',
+              font: {
+                size: 10
+              },
+              callback: v => `₡${Math.round(v / 1000)}k`
+            }
+          }
+        }
+      }
     });
-    return () => { if (chartRef.current) chartRef.current.destroy(); };
+    return () => {
+      if (chartRef.current) chartRef.current.destroy();
+    };
   }, [data]);
-  return <div style={{ height: 200 }}><canvas ref={canvasRef}></canvas></div>;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 200
+    }
+  }, /*#__PURE__*/React.createElement("canvas", {
+    ref: canvasRef
+  }));
 }
 
 /* ----------------------------- Dashboard ----------------------------- */
 
-function Dashboard({ sales, orders, ingredients, expenses, usage, businessName }) {
-  const todaySales = sales.filter((s) => isToday(s.time));
+function Dashboard({
+  sales,
+  orders,
+  ingredients,
+  expenses,
+  usage,
+  businessName
+}) {
+  const todaySales = sales.filter(s => isToday(s.time));
   const todaySalesTotal = todaySales.reduce((a, s) => a + s.total, 0);
-  const activeOrders = orders.filter((o) => o.status !== 'Delivered');
-  const lowStock = ingredients.filter((i) => i.stock <= i.threshold);
-  const todayExpensesTotal = expenses.filter((e) => isToday(e.time)).reduce((a, e) => a + e.amount, 0);
-
+  const activeOrders = orders.filter(o => o.status !== 'Delivered');
+  const lowStock = ingredients.filter(i => i.stock <= i.threshold);
+  const todayExpensesTotal = expenses.filter(e => isToday(e.time)).reduce((a, e) => a + e.amount, 0);
   const last7 = useMemo(() => [...Array(7)].map((_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i));
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
     const key = d.toDateString();
-    const total = sales.filter((s) => new Date(s.time).toDateString() === key).reduce((a, s) => a + s.total, 0);
-    return { day: d.toLocaleDateString('es-CR', { weekday: 'short' }).replace('.', ''), total };
+    const total = sales.filter(s => new Date(s.time).toDateString() === key).reduce((a, s) => a + s.total, 0);
+    return {
+      day: d.toLocaleDateString('es-CR', {
+        weekday: 'short'
+      }).replace('.', ''),
+      total
+    };
   }), [sales]);
-
   const topSellers = useMemo(() => {
     const counts = {};
-    sales.forEach((s) => s.items.forEach((it) => { counts[it.name] = (counts[it.name] || 0) + it.qty; }));
+    sales.forEach(s => s.items.forEach(it => {
+      counts[it.name] = (counts[it.name] || 0) + it.qty;
+    }));
     const arr = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const max = arr.length ? arr[0][1] : 1;
-    return arr.map(([name, qty]) => ({ name, qty, pct: Math.round((qty / max) * 100) }));
+    return arr.map(([name, qty]) => ({
+      name,
+      qty,
+      pct: Math.round(qty / max * 100)
+    }));
   }, [sales]);
-
   const feed = useMemo(() => {
     const items = [];
-    sales.forEach((s) => items.push({ kind: 'sale', time: s.time, id: 's' + s.id, title: `Sale — ${s.items.reduce((a, i) => a + i.qty, 0)} item(s)`, amount: fmtCRC(s.total), by: s.by, tone: 'basil' }));
-    orders.forEach((o) => items.push({ kind: 'order', time: o.time, id: 'o' + o.id, title: `Order — ${o.customer || 'Walk-in'}`, amount: o.status, by: o.by, tone: 'semolina' }));
-    usage.forEach((u) => items.push({ kind: u.type, time: u.time, id: 'u' + u.id, title: `${u.type === 'restock' ? 'Restocked' : 'Used'} ${u.ingredientName}`, amount: `${u.qty} ${u.unit}`, by: u.by, tone: u.type === 'restock' ? 'basil' : 'flour-dim' }));
-    expenses.forEach((e) => items.push({ kind: 'expense', time: e.time, id: 'e' + e.id, title: e.description || e.category, amount: fmtCRC(e.amount), by: e.by, tone: 'tomato' }));
+    sales.forEach(s => items.push({
+      kind: 'sale',
+      time: s.time,
+      id: 's' + s.id,
+      title: `Sale — ${s.items.reduce((a, i) => a + i.qty, 0)} item(s)`,
+      amount: fmtCRC(s.total),
+      by: s.by,
+      tone: 'basil'
+    }));
+    orders.forEach(o => items.push({
+      kind: 'order',
+      time: o.time,
+      id: 'o' + o.id,
+      title: `Order — ${o.customer || 'Walk-in'}`,
+      amount: o.status,
+      by: o.by,
+      tone: 'semolina'
+    }));
+    usage.forEach(u => items.push({
+      kind: u.type,
+      time: u.time,
+      id: 'u' + u.id,
+      title: `${u.type === 'restock' ? 'Restocked' : 'Used'} ${u.ingredientName}`,
+      amount: `${u.qty} ${u.unit}`,
+      by: u.by,
+      tone: u.type === 'restock' ? 'basil' : 'flour-dim'
+    }));
+    expenses.forEach(e => items.push({
+      kind: 'expense',
+      time: e.time,
+      id: 'e' + e.id,
+      title: e.description || e.category,
+      amount: fmtCRC(e.amount),
+      by: e.by,
+      tone: 'tomato'
+    }));
     return items.sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 9);
   }, [sales, orders, usage, expenses]);
-
-  return (
-    <div>
-      <SectionHeader title={businessName} subtitle="Today's snapshot, updating live as the team logs activity." />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Sales today" value={fmtCRC(todaySalesTotal)} sub={`${todaySales.length} ticket(s)`} tone="basil" Icon={IconCart} />
-        <StatCard label="Active orders" value={activeOrders.length} sub={`${orders.filter(o => o.status === 'Pending').length} pending`} tone="semolina" Icon={IconClipboard} />
-        <StatCard label="Low stock" value={lowStock.length} sub={lowStock.length ? lowStock[0].name : 'all good'} tone={lowStock.length ? 'tomato' : 'flour'} Icon={IconAlert} />
-        <StatCard label="Expenses today" value={fmtCRC(todayExpensesTotal)} sub="cash out" tone="flour" Icon={IconWallet} />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
-        <div className="lg:col-span-3 p-4" style={{ background: 'var(--crust)', border: '1px solid var(--line)', borderRadius: 10 }}>
-          <h3 style={{ color: 'var(--flour)' }} className="text-sm font-semibold mb-3">Sales, last 7 days</h3>
-          <SalesTrendChart data={last7} />
-        </div>
-        <div className="lg:col-span-2 p-4" style={{ background: 'var(--crust)', border: '1px solid var(--line)', borderRadius: 10 }}>
-          <h3 style={{ color: 'var(--flour)' }} className="text-sm font-semibold mb-3">Top sellers</h3>
-          {topSellers.length === 0 && <p style={{ color: 'var(--flour-dim)' }} className="text-sm">No sales logged yet.</p>}
-          <div className="flex flex-col gap-2.5">
-            {topSellers.map((t) => (
-              <div key={t.name}>
-                <div className="flex justify-between text-xs mb-1"><span style={{ color: 'var(--flour)' }}>{t.name}</span><span style={{ color: 'var(--flour-dim)' }} className="font-mono">{t.qty}</span></div>
-                <div style={{ background: 'var(--bg)', borderRadius: 4, height: 5 }}><div style={{ background: 'var(--semolina)', width: `${t.pct}%`, height: 5, borderRadius: 4 }} /></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <h3 style={{ color: 'var(--flour)' }} className="text-sm font-semibold mb-3">Recent activity</h3>
-      <div className="flex flex-col gap-2">
-        {feed.length === 0 && <p style={{ color: 'var(--flour-dim)' }} className="text-sm">Nothing logged yet — activity from the whole team will show up here.</p>}
-        {feed.map((f) => (
-          <Ticket key={f.id} style={{ padding: '10px 14px' }}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0"><div style={{ color: 'var(--flour)' }} className="text-sm truncate">{f.title}</div><div style={{ color: 'var(--flour-dim)' }} className="text-xs font-mono">{fmtTime(f.time)} · {f.by || 'Team'}</div></div>
-              <div className="font-mono text-sm flex-shrink-0" style={{ color: `var(--${f.tone})` }}>{f.amount}</div>
-            </div>
-          </Ticket>
-        ))}
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: businessName,
+    subtitle: "Today's snapshot, updating live as the team logs activity."
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6"
+  }, /*#__PURE__*/React.createElement(StatCard, {
+    label: "Sales today",
+    value: fmtCRC(todaySalesTotal),
+    sub: `${todaySales.length} ticket(s)`,
+    tone: "basil",
+    Icon: IconCart
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Active orders",
+    value: activeOrders.length,
+    sub: `${orders.filter(o => o.status === 'Pending').length} pending`,
+    tone: "semolina",
+    Icon: IconClipboard
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Low stock",
+    value: lowStock.length,
+    sub: lowStock.length ? lowStock[0].name : 'all good',
+    tone: lowStock.length ? 'tomato' : 'flour',
+    Icon: IconAlert
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    label: "Expenses today",
+    value: fmtCRC(todayExpensesTotal),
+    sub: "cash out",
+    tone: "flour",
+    Icon: IconWallet
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "lg:col-span-3 p-4",
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-3"
+  }, "Sales, last 7 days"), /*#__PURE__*/React.createElement(SalesTrendChart, {
+    data: last7
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "lg:col-span-2 p-4",
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-3"
+  }, "Top sellers"), topSellers.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm"
+  }, "No sales logged yet."), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-2.5"
+  }, topSellers.map(t => /*#__PURE__*/React.createElement("div", {
+    key: t.name
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between text-xs mb-1"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, t.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "font-mono"
+  }, t.qty)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--bg)',
+      borderRadius: 4,
+      height: 5
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--semolina)',
+      width: `${t.pct}%`,
+      height: 5,
+      borderRadius: 4
+    }
+  }))))))), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-3"
+  }, "Recent activity"), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-2"
+  }, feed.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm"
+  }, "Nothing logged yet — activity from the whole team will show up here."), feed.map(f => /*#__PURE__*/React.createElement(Ticket, {
+    key: f.id,
+    style: {
+      padding: '10px 14px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm truncate"
+  }, f.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs font-mono"
+  }, fmtTime(f.time), " · ", f.by || 'Team')), /*#__PURE__*/React.createElement("div", {
+    className: "font-mono text-sm flex-shrink-0",
+    style: {
+      color: `var(--${f.tone})`
+    }
+  }, f.amount))))));
 }
 
 /* ----------------------------- Log Sale ----------------------------- */
 
-function LogSale({ menu, onCompleteSale }) {
+function LogSale({
+  menu,
+  onCompleteSale
+}) {
   const [cart, setCart] = useState([]);
   const [payment, setPayment] = useState('Cash');
   const [filterCat, setFilterCat] = useState('All');
-  const add = (item) => setCart((c) => { const ex = c.find((x) => x.id === item.id); if (ex) return c.map((x) => x.id === item.id ? { ...x, qty: x.qty + 1 } : x); return [...c, { id: item.id, name: item.name, price: item.price, qty: 1 }]; });
-  const remove = (item) => setCart((c) => c.map((x) => x.id === item.id ? { ...x, qty: x.qty - 1 } : x).filter((x) => x.qty > 0));
+  const add = item => setCart(c => {
+    const ex = c.find(x => x.id === item.id);
+    if (ex) return c.map(x => x.id === item.id ? {
+      ...x,
+      qty: x.qty + 1
+    } : x);
+    return [...c, {
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      qty: 1
+    }];
+  });
+  const remove = item => setCart(c => c.map(x => x.id === item.id ? {
+    ...x,
+    qty: x.qty - 1
+  } : x).filter(x => x.qty > 0));
   const total = cart.reduce((a, c) => a + c.price * c.qty, 0);
-  return (
-    <div>
-      <SectionHeader title="Log a sale" subtitle="Tap items to build the ticket, then complete the sale." />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2"><ItemPicker menu={menu} selection={cart} onAdd={add} onRemove={remove} filterCat={filterCat} setFilterCat={setFilterCat} /></div>
-        <div>
-          <Ticket style={{ padding: '16px 16px 16px 20px' }} className="sticky top-4">
-            <h3 style={{ color: 'var(--flour)' }} className="text-sm font-semibold mb-3">Ticket</h3>
-            {cart.length === 0 && <p style={{ color: 'var(--flour-dim)' }} className="text-sm mb-3">No items yet.</p>}
-            <div className="flex flex-col gap-2 mb-3">{cart.map((c) => <div key={c.id} className="flex justify-between text-sm font-mono"><span style={{ color: 'var(--flour)' }}>{c.qty}× {c.name}</span><span style={{ color: 'var(--flour-dim)' }}>{fmtCRC(c.price * c.qty)}</span></div>)}</div>
-            <div style={{ borderTop: '1px dashed var(--line)' }} className="pt-2 mb-3 flex justify-between font-mono text-base"><span style={{ color: 'var(--flour)' }}>Total</span><span style={{ color: 'var(--semolina)' }}>{fmtCRC(total)}</span></div>
-            <div className="flex gap-1.5 mb-3">{PAYMENT_METHODS.map((p) => <button key={p} onClick={() => setPayment(p)} className="flex-1 py-1.5 rounded-md text-xs font-mono" style={{ background: payment === p ? 'var(--basil)' : 'var(--crust-2)', color: payment === p ? '#0F1A0E' : 'var(--flour-dim)' }}>{p}</button>)}</div>
-            <button onClick={() => { if (cart.length) { onCompleteSale(cart, total, payment); setCart([]); } }} disabled={cart.length === 0} className="w-full py-2.5 rounded-lg text-sm font-semibold disabled:opacity-30" style={{ background: 'var(--tomato)', color: 'var(--flour)' }}>Complete sale</button>
-          </Ticket>
-        </div>
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "Log a sale",
+    subtitle: "Tap items to build the ticket, then complete the sale."
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 lg:grid-cols-3 gap-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "lg:col-span-2"
+  }, /*#__PURE__*/React.createElement(ItemPicker, {
+    menu: menu,
+    selection: cart,
+    onAdd: add,
+    onRemove: remove,
+    filterCat: filterCat,
+    setFilterCat: setFilterCat
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Ticket, {
+    style: {
+      padding: '16px 16px 16px 20px'
+    },
+    className: "sticky top-4"
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-3"
+  }, "Ticket"), cart.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm mb-3"
+  }, "No items yet."), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-2 mb-3"
+  }, cart.map(c => /*#__PURE__*/React.createElement("div", {
+    key: c.id,
+    className: "flex justify-between text-sm font-mono"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, c.qty, "× ", c.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    }
+  }, fmtCRC(c.price * c.qty))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: '1px dashed var(--line)'
+    },
+    className: "pt-2 mb-3 flex justify-between font-mono text-base"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, "Total"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--semolina)'
+    }
+  }, fmtCRC(total))), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1.5 mb-3"
+  }, PAYMENT_METHODS.map(p => /*#__PURE__*/React.createElement("button", {
+    key: p,
+    onClick: () => setPayment(p),
+    className: "flex-1 py-1.5 rounded-md text-xs font-mono",
+    style: {
+      background: payment === p ? 'var(--basil)' : 'var(--crust-2)',
+      color: payment === p ? '#0F1A0E' : 'var(--flour-dim)'
+    }
+  }, p))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (cart.length) {
+        onCompleteSale(cart, total, payment);
+        setCart([]);
+      }
+    },
+    disabled: cart.length === 0,
+    className: "w-full py-2.5 rounded-lg text-sm font-semibold disabled:opacity-30",
+    style: {
+      background: 'var(--tomato)',
+      color: 'var(--flour)'
+    }
+  }, "Complete sale")))));
 }
 
 /* ----------------------------- Orders ----------------------------- */
 
-function NewOrderForm({ menu, onCreate, onClose }) {
+function NewOrderForm({
+  menu,
+  onCreate,
+  onClose
+}) {
   const [customer, setCustomer] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState([]);
   const [filterCat, setFilterCat] = useState('All');
-  const add = (item) => setItems((c) => { const ex = c.find((x) => x.id === item.id); if (ex) return c.map((x) => x.id === item.id ? { ...x, qty: x.qty + 1 } : x); return [...c, { id: item.id, name: item.name, qty: 1 }]; });
-  const remove = (item) => setItems((c) => c.map((x) => x.id === item.id ? { ...x, qty: x.qty - 1 } : x).filter((x) => x.qty > 0));
-  return (
-    <div style={{ background: 'var(--crust)', border: '1px solid var(--line)', borderRadius: 10 }} className="p-4 mb-5">
-      <div className="flex items-center justify-between mb-3"><h3 style={{ color: 'var(--flour)' }} className="text-sm font-semibold">New order</h3><button onClick={onClose} style={{ color: 'var(--flour-dim)' }}><IconX size={16} /></button></div>
-      <input value={customer} onChange={(e) => setCustomer(e.target.value)} placeholder="Customer / table name" className="w-full mb-3 px-3 py-2 rounded-md text-sm outline-none" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-      <ItemPicker menu={menu} selection={items} onAdd={add} onRemove={remove} filterCat={filterCat} setFilterCat={setFilterCat} />
-      <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes (optional)" rows={2} className="w-full mt-3 px-3 py-2 rounded-md text-sm outline-none resize-none" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-      <button onClick={() => { if (items.length) { onCreate(customer, items, notes); onClose(); } }} disabled={items.length === 0} className="w-full mt-3 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-30" style={{ background: 'var(--tomato)', color: 'var(--flour)' }}>Create order</button>
-    </div>
-  );
+  const add = item => setItems(c => {
+    const ex = c.find(x => x.id === item.id);
+    if (ex) return c.map(x => x.id === item.id ? {
+      ...x,
+      qty: x.qty + 1
+    } : x);
+    return [...c, {
+      id: item.id,
+      name: item.name,
+      qty: 1
+    }];
+  });
+  const remove = item => setItems(c => c.map(x => x.id === item.id ? {
+    ...x,
+    qty: x.qty - 1
+  } : x).filter(x => x.qty > 0));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    },
+    className: "p-4 mb-5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-3"
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold"
+  }, "New order"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      color: 'var(--flour-dim)'
+    }
+  }, /*#__PURE__*/React.createElement(IconX, {
+    size: 16
+  }))), /*#__PURE__*/React.createElement("input", {
+    value: customer,
+    onChange: e => setCustomer(e.target.value),
+    placeholder: "Customer / table name",
+    className: "w-full mb-3 px-3 py-2 rounded-md text-sm outline-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement(ItemPicker, {
+    menu: menu,
+    selection: items,
+    onAdd: add,
+    onRemove: remove,
+    filterCat: filterCat,
+    setFilterCat: setFilterCat
+  }), /*#__PURE__*/React.createElement("textarea", {
+    value: notes,
+    onChange: e => setNotes(e.target.value),
+    placeholder: "Notes (optional)",
+    rows: 2,
+    className: "w-full mt-3 px-3 py-2 rounded-md text-sm outline-none resize-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (items.length) {
+        onCreate(customer, items, notes);
+        onClose();
+      }
+    },
+    disabled: items.length === 0,
+    className: "w-full mt-3 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-30",
+    style: {
+      background: 'var(--tomato)',
+      color: 'var(--flour)'
+    }
+  }, "Create order"));
 }
-
-function Orders({ orders, menu, onCreate, onAdvance }) {
+function Orders({
+  orders,
+  menu,
+  onCreate,
+  onAdvance
+}) {
   const [showForm, setShowForm] = useState(false);
-  return (
-    <div>
-      <SectionHeader title="Orders" subtitle="Track every ticket from pending to delivered." right={<button onClick={() => setShowForm((s) => !s)} className="px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5" style={{ background: 'var(--tomato)', color: 'var(--flour)' }}><IconPlus size={15} /> New order</button>} />
-      {showForm && <NewOrderForm menu={menu} onCreate={onCreate} onClose={() => setShowForm(false)} />}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {ORDER_STATUSES.map((status) => {
-          const list = orders.filter((o) => o.status === status).sort((a, b) => new Date(b.time) - new Date(a.time));
-          return (
-            <div key={status}>
-              <div className="flex items-center justify-between mb-2 px-1"><span style={{ color: 'var(--flour)' }} className="text-xs font-semibold uppercase tracking-wide">{status}</span><span style={{ color: 'var(--flour-dim)' }} className="text-xs font-mono">{list.length}</span></div>
-              <div className="flex flex-col gap-2">
-                {list.map((o) => (
-                  <Ticket key={o.id} style={{ padding: '10px 12px' }}>
-                    <div style={{ color: 'var(--flour)' }} className="text-sm font-medium">{o.customer || 'Walk-in'}</div>
-                    <div style={{ color: 'var(--flour-dim)' }} className="text-xs font-mono mt-1">{o.items.map((it) => `${it.qty}× ${it.name}`).join(', ')}</div>
-                    {o.notes && <div style={{ color: 'var(--flour-dim)' }} className="text-xs italic mt-1">{o.notes}</div>}
-                    <div className="flex items-center justify-between mt-2">
-                      <span style={{ color: 'var(--flour-dim)' }} className="text-xs font-mono">{fmtTime(o.time)}</span>
-                      {status !== 'Delivered' && <button onClick={() => onAdvance(o.id, o.status)} className="flex items-center gap-1 text-xs font-mono px-2 py-1 rounded-md" style={{ background: 'var(--basil)', color: '#0F1A0E' }}>{ORDER_STATUSES[ORDER_STATUSES.indexOf(status) + 1]} <IconArrowRight size={11} /></button>}
-                      {status === 'Delivered' && <IconCheck size={14} style={{ color: 'var(--basil)' }} />}
-                    </div>
-                  </Ticket>
-                ))}
-                {list.length === 0 && <div style={{ color: 'var(--flour-dim)', border: '1px dashed var(--line)' }} className="text-xs text-center py-4 rounded-lg">—</div>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "Orders",
+    subtitle: "Track every ticket from pending to delivered.",
+    right: /*#__PURE__*/React.createElement("button", {
+      onClick: () => setShowForm(s => !s),
+      className: "px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5",
+      style: {
+        background: 'var(--tomato)',
+        color: 'var(--flour)'
+      }
+    }, /*#__PURE__*/React.createElement(IconPlus, {
+      size: 15
+    }), " New order")
+  }), showForm && /*#__PURE__*/React.createElement(NewOrderForm, {
+    menu: menu,
+    onCreate: onCreate,
+    onClose: () => setShowForm(false)
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+  }, ORDER_STATUSES.map(status => {
+    const list = orders.filter(o => o.status === status).sort((a, b) => new Date(b.time) - new Date(a.time));
+    return /*#__PURE__*/React.createElement("div", {
+      key: status
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center justify-between mb-2 px-1"
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: 'var(--flour)'
+      },
+      className: "text-xs font-semibold uppercase tracking-wide"
+    }, status), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: 'var(--flour-dim)'
+      },
+      className: "text-xs font-mono"
+    }, list.length)), /*#__PURE__*/React.createElement("div", {
+      className: "flex flex-col gap-2"
+    }, list.map(o => /*#__PURE__*/React.createElement(Ticket, {
+      key: o.id,
+      style: {
+        padding: '10px 12px'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: 'var(--flour)'
+      },
+      className: "text-sm font-medium"
+    }, o.customer || 'Walk-in'), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: 'var(--flour-dim)'
+      },
+      className: "text-xs font-mono mt-1"
+    }, o.items.map(it => `${it.qty}× ${it.name}`).join(', ')), o.notes && /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: 'var(--flour-dim)'
+      },
+      className: "text-xs italic mt-1"
+    }, o.notes), /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center justify-between mt-2"
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: 'var(--flour-dim)'
+      },
+      className: "text-xs font-mono"
+    }, fmtTime(o.time)), status !== 'Delivered' && /*#__PURE__*/React.createElement("button", {
+      onClick: () => onAdvance(o.id, o.status),
+      className: "flex items-center gap-1 text-xs font-mono px-2 py-1 rounded-md",
+      style: {
+        background: 'var(--basil)',
+        color: '#0F1A0E'
+      }
+    }, ORDER_STATUSES[ORDER_STATUSES.indexOf(status) + 1], " ", /*#__PURE__*/React.createElement(IconArrowRight, {
+      size: 11
+    })), status === 'Delivered' && /*#__PURE__*/React.createElement(IconCheck, {
+      size: 14,
+      style: {
+        color: 'var(--basil)'
+      }
+    })))), list.length === 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: 'var(--flour-dim)',
+        border: '1px dashed var(--line)'
+      },
+      className: "text-xs text-center py-4 rounded-lg"
+    }, "—")));
+  })));
 }
 
 /* ----------------------------- Inventory ----------------------------- */
 
-function IngredientCard({ ing, onLog }) {
+function IngredientCard({
+  ing,
+  onLog
+}) {
   const [qty, setQty] = useState('1');
   const low = ing.stock <= ing.threshold;
-  return (
-    <Ticket style={{ padding: '12px 14px' }}>
-      <div className="flex items-start justify-between mb-2">
-        <div><div style={{ color: 'var(--flour)' }} className="text-sm font-medium">{ing.name}</div><div style={{ color: 'var(--flour-dim)' }} className="text-xs font-mono">threshold {ing.threshold} {ing.unit}</div></div>
-        <div className="text-right"><div className="font-mono font-semibold" style={{ color: low ? 'var(--tomato)' : 'var(--flour)' }}>{ing.stock}</div><div style={{ color: 'var(--flour-dim)' }} className="text-xs">{ing.unit}</div></div>
-      </div>
-      {low && <div className="flex items-center gap-1 mb-2 text-xs" style={{ color: 'var(--tomato)' }}><IconAlert size={12} /> Low stock</div>}
-      <div className="flex items-center gap-1.5">
-        <input type="number" min="0" step="any" value={qty} onChange={(e) => setQty(e.target.value)} className="w-16 px-2 py-1.5 rounded-md text-xs font-mono outline-none" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-        <button onClick={() => { const n = parseFloat(qty); if (n > 0) onLog(ing, n, 'use'); }} className="flex-1 py-1.5 rounded-md text-xs font-mono font-semibold" style={{ background: 'var(--crust-2)', color: 'var(--flour)' }}>Use</button>
-        <button onClick={() => { const n = parseFloat(qty); if (n > 0) onLog(ing, n, 'restock'); }} className="flex-1 py-1.5 rounded-md text-xs font-mono font-semibold" style={{ background: 'var(--basil)', color: '#0F1A0E' }}>Restock</button>
-      </div>
-    </Ticket>
-  );
+  return /*#__PURE__*/React.createElement(Ticket, {
+    style: {
+      padding: '12px 14px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-start justify-between mb-2"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-medium"
+  }, ing.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs font-mono"
+  }, "threshold ", ing.threshold, " ", ing.unit)), /*#__PURE__*/React.createElement("div", {
+    className: "text-right"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-mono font-semibold",
+    style: {
+      color: low ? 'var(--tomato)' : 'var(--flour)'
+    }
+  }, ing.stock), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs"
+  }, ing.unit))), low && /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1 mb-2 text-xs",
+    style: {
+      color: 'var(--tomato)'
+    }
+  }, /*#__PURE__*/React.createElement(IconAlert, {
+    size: 12
+  }), " Low stock"), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1.5"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "0",
+    step: "any",
+    value: qty,
+    onChange: e => setQty(e.target.value),
+    className: "w-16 px-2 py-1.5 rounded-md text-xs font-mono outline-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      const n = parseFloat(qty);
+      if (n > 0) onLog(ing, n, 'use');
+    },
+    className: "flex-1 py-1.5 rounded-md text-xs font-mono font-semibold",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)'
+    }
+  }, "Use"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      const n = parseFloat(qty);
+      if (n > 0) onLog(ing, n, 'restock');
+    },
+    className: "flex-1 py-1.5 rounded-md text-xs font-mono font-semibold",
+    style: {
+      background: 'var(--basil)',
+      color: '#0F1A0E'
+    }
+  }, "Restock")));
 }
-function Inventory({ ingredients, onLog }) {
-  const lowCount = ingredients.filter((i) => i.stock <= i.threshold).length;
-  return (
-    <div>
-      <SectionHeader title="Inventory" subtitle={lowCount ? `${lowCount} ingredient(s) running low.` : 'All ingredients are well stocked.'} />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {ingredients.map((ing) => <IngredientCard key={ing.id} ing={ing} onLog={onLog} />)}
-        {ingredients.length === 0 && <p style={{ color: 'var(--flour-dim)' }} className="text-sm">No ingredients yet — add them in Setup.</p>}
-      </div>
-    </div>
-  );
+function Inventory({
+  ingredients,
+  onLog
+}) {
+  const lowCount = ingredients.filter(i => i.stock <= i.threshold).length;
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "Inventory",
+    subtitle: lowCount ? `${lowCount} ingredient(s) running low.` : 'All ingredients are well stocked.'
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+  }, ingredients.map(ing => /*#__PURE__*/React.createElement(IngredientCard, {
+    key: ing.id,
+    ing: ing,
+    onLog: onLog
+  })), ingredients.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm"
+  }, "No ingredients yet — add them in Setup.")));
 }
 
 /* ----------------------------- Expenses ----------------------------- */
 
-function Expenses({ expenses, onAdd }) {
+function Expenses({
+  expenses,
+  onAdd
+}) {
   const [desc, setDesc] = useState('');
   const [cat, setCat] = useState(EXPENSE_CATEGORIES[0]);
   const [amount, setAmount] = useState('');
   const sorted = [...expenses].sort((a, b) => new Date(b.time) - new Date(a.time));
   const total = expenses.reduce((a, e) => a + e.amount, 0);
-  return (
-    <div>
-      <SectionHeader title="Expenses" subtitle={`${fmtCRC(total)} logged all-time.`} />
-      <div style={{ background: 'var(--crust)', border: '1px solid var(--line)', borderRadius: 10 }} className="p-4 mb-5 grid grid-cols-1 sm:grid-cols-4 gap-2">
-        <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Description" className="sm:col-span-2 px-3 py-2 rounded-md text-sm outline-none" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-        <select value={cat} onChange={(e) => setCat(e.target.value)} className="px-3 py-2 rounded-md text-sm outline-none" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }}>{EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select>
-        <div className="flex gap-2">
-          <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="₡ amount" className="flex-1 px-3 py-2 rounded-md text-sm outline-none font-mono" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-          <button onClick={() => { const n = parseFloat(amount); if (n > 0) { onAdd(desc, cat, n); setDesc(''); setAmount(''); } }} className="px-3 py-2 rounded-md" style={{ background: 'var(--tomato)', color: 'var(--flour)' }}><IconPlus size={15} /></button>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        {sorted.map((e) => (
-          <Ticket key={e.id} style={{ padding: '10px 14px' }}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0"><div style={{ color: 'var(--flour)' }} className="text-sm truncate">{e.description || e.category}</div><div style={{ color: 'var(--flour-dim)' }} className="text-xs font-mono">{e.category} · {fmtTime(e.time)} · {e.by || 'Team'}</div></div>
-              <div className="font-mono text-sm" style={{ color: 'var(--tomato)' }}>{fmtCRC(e.amount)}</div>
-            </div>
-          </Ticket>
-        ))}
-        {sorted.length === 0 && <p style={{ color: 'var(--flour-dim)' }} className="text-sm">No expenses logged yet.</p>}
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "Expenses",
+    subtitle: `${fmtCRC(total)} logged all-time.`
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    },
+    className: "p-4 mb-5 grid grid-cols-1 sm:grid-cols-4 gap-2"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: desc,
+    onChange: e => setDesc(e.target.value),
+    placeholder: "Description",
+    className: "sm:col-span-2 px-3 py-2 rounded-md text-sm outline-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("select", {
+    value: cat,
+    onChange: e => setCat(e.target.value),
+    className: "px-3 py-2 rounded-md text-sm outline-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }, EXPENSE_CATEGORIES.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c,
+    value: c
+  }, c))), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: amount,
+    onChange: e => setAmount(e.target.value),
+    placeholder: "₡ amount",
+    className: "flex-1 px-3 py-2 rounded-md text-sm outline-none font-mono",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      const n = parseFloat(amount);
+      if (n > 0) {
+        onAdd(desc, cat, n);
+        setDesc('');
+        setAmount('');
+      }
+    },
+    className: "px-3 py-2 rounded-md",
+    style: {
+      background: 'var(--tomato)',
+      color: 'var(--flour)'
+    }
+  }, /*#__PURE__*/React.createElement(IconPlus, {
+    size: 15
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-2"
+  }, sorted.map(e => /*#__PURE__*/React.createElement(Ticket, {
+    key: e.id,
+    style: {
+      padding: '10px 14px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm truncate"
+  }, e.description || e.category), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs font-mono"
+  }, e.category, " · ", fmtTime(e.time), " · ", e.by || 'Team')), /*#__PURE__*/React.createElement("div", {
+    className: "font-mono text-sm",
+    style: {
+      color: 'var(--tomato)'
+    }
+  }, fmtCRC(e.amount))))), sorted.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm"
+  }, "No expenses logged yet.")));
 }
 
 /* ----------------------------- Team access ----------------------------- */
 
-function TeamAccess({ ownerEmail, authorizedUsers, onAdd, onRemove }) {
+function TeamAccess({
+  ownerEmail,
+  authorizedUsers,
+  onAdd,
+  onRemove
+}) {
   const [email, setEmail] = useState('');
-  return (
-    <div style={{ background: 'var(--crust)', border: '1px solid var(--line)', borderRadius: 10 }} className="p-4 mb-5">
-      <h3 style={{ color: 'var(--flour)' }} className="text-sm font-semibold mb-1">Team access</h3>
-      <p style={{ color: 'var(--flour-dim)' }} className="text-xs mb-3">Only people signed in with an approved Google account can open this dashboard. You control that list here.</p>
-      <div className="flex flex-col gap-1.5 mb-3">
-        <div className="flex items-center justify-between text-sm px-3 py-2 rounded-md" style={{ background: 'var(--crust-2)' }}><span style={{ color: 'var(--flour)' }}>{ownerEmail} <span style={{ color: 'var(--basil)' }} className="text-xs font-mono">· owner</span></span></div>
-        {authorizedUsers.map((u) => (
-          <div key={u.id} className="flex items-center justify-between text-sm px-3 py-2 rounded-md" style={{ background: 'var(--crust-2)' }}>
-            <span style={{ color: 'var(--flour)' }}>{u.id}</span>
-            <button onClick={() => onRemove(u.id)} style={{ color: 'var(--tomato)' }}><IconTrash size={14} /></button>
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="colleague@gmail.com" className="flex-1 px-3 py-2 rounded-md text-sm outline-none" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-        <button onClick={() => { const e2 = email.trim().toLowerCase(); if (e2.includes('@')) { onAdd(e2); setEmail(''); } }} className="px-4 py-2 rounded-md text-sm font-semibold" style={{ background: 'var(--tomato)', color: 'var(--flour)' }}>Add</button>
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    },
+    className: "p-4 mb-5"
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-1"
+  }, "Team access"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs mb-3"
+  }, "Only people signed in with an approved Google account can open this dashboard. You control that list here."), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-1.5 mb-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between text-sm px-3 py-2 rounded-md",
+    style: {
+      background: 'var(--crust-2)'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, ownerEmail, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--basil)'
+    },
+    className: "text-xs font-mono"
+  }, "· owner"))), authorizedUsers.map(u => /*#__PURE__*/React.createElement("div", {
+    key: u.id,
+    className: "flex items-center justify-between text-sm px-3 py-2 rounded-md",
+    style: {
+      background: 'var(--crust-2)'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, u.id), /*#__PURE__*/React.createElement("button", {
+    onClick: () => onRemove(u.id),
+    style: {
+      color: 'var(--tomato)'
+    }
+  }, /*#__PURE__*/React.createElement(IconTrash, {
+    size: 14
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: email,
+    onChange: e => setEmail(e.target.value),
+    placeholder: "colleague@gmail.com",
+    className: "flex-1 px-3 py-2 rounded-md text-sm outline-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      const e2 = email.trim().toLowerCase();
+      if (e2.includes('@')) {
+        onAdd(e2);
+        setEmail('');
+      }
+    },
+    className: "px-4 py-2 rounded-md text-sm font-semibold",
+    style: {
+      background: 'var(--tomato)',
+      color: 'var(--flour)'
+    }
+  }, "Add")));
 }
 
 /* ----------------------------- Setup ----------------------------- */
 
-function Setup({ settings, menu, ingredients, isOwner, ownerEmail, authorizedUsers, onSaveSettings, onAddMenu, onRemoveMenu, onAddIngredient, onRemoveIngredient, onClearLogs, onAddTeam, onRemoveTeam }) {
+function Setup({
+  settings,
+  menu,
+  ingredients,
+  isOwner,
+  ownerEmail,
+  authorizedUsers,
+  onSaveSettings,
+  onAddMenu,
+  onRemoveMenu,
+  onAddIngredient,
+  onRemoveIngredient,
+  onClearLogs,
+  onAddTeam,
+  onRemoveTeam
+}) {
   const [name, setName] = useState(settings.businessName || '');
-  const [mName, setMName] = useState(''); const [mPrice, setMPrice] = useState(''); const [mCat, setMCat] = useState(CATEGORIES[0]);
-  const [iName, setIName] = useState(''); const [iUnit, setIUnit] = useState(''); const [iStock, setIStock] = useState(''); const [iThreshold, setIThreshold] = useState('');
+  const [mName, setMName] = useState('');
+  const [mPrice, setMPrice] = useState('');
+  const [mCat, setMCat] = useState(CATEGORIES[0]);
+  const [iName, setIName] = useState('');
+  const [iUnit, setIUnit] = useState('');
+  const [iStock, setIStock] = useState('');
+  const [iThreshold, setIThreshold] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
-  useEffect(() => { setName(settings.businessName || ''); }, [settings.businessName]);
-  return (
-    <div>
-      <SectionHeader title="Setup" subtitle="Manage your menu, ingredients, and business info." />
-      {isOwner && <TeamAccess ownerEmail={ownerEmail} authorizedUsers={authorizedUsers} onAdd={onAddTeam} onRemove={onRemoveTeam} />}
-      <div style={{ background: 'var(--crust)', border: '1px solid var(--line)', borderRadius: 10 }} className="p-4 mb-5">
-        <h3 style={{ color: 'var(--flour)' }} className="text-sm font-semibold mb-3">Business name</h3>
-        <div className="flex gap-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} className="flex-1 px-3 py-2 rounded-md text-sm outline-none" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-          <button onClick={() => onSaveSettings(name)} className="px-4 py-2 rounded-md text-sm font-semibold" style={{ background: 'var(--tomato)', color: 'var(--flour)' }}>Save</button>
-        </div>
-      </div>
-      <div style={{ background: 'var(--crust)', border: '1px solid var(--line)', borderRadius: 10 }} className="p-4 mb-5">
-        <h3 style={{ color: 'var(--flour)' }} className="text-sm font-semibold mb-3">Menu items</h3>
-        <div className="flex flex-col gap-1.5 mb-3">{menu.map((m) => <div key={m.id} className="flex items-center justify-between text-sm px-3 py-2 rounded-md" style={{ background: 'var(--crust-2)' }}><span style={{ color: 'var(--flour)' }}>{m.name} <span style={{ color: 'var(--flour-dim)' }} className="font-mono text-xs">· {m.category} · {fmtCRC(m.price)}</span></span><button onClick={() => onRemoveMenu(m.id)} style={{ color: 'var(--tomato)' }}><IconTrash size={14} /></button></div>)}</div>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-          <input value={mName} onChange={(e) => setMName(e.target.value)} placeholder="Item name" className="px-3 py-2 rounded-md text-sm outline-none sm:col-span-2" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-          <select value={mCat} onChange={(e) => setMCat(e.target.value)} className="px-3 py-2 rounded-md text-sm outline-none" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }}>{CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select>
-          <div className="flex gap-2">
-            <input type="number" value={mPrice} onChange={(e) => setMPrice(e.target.value)} placeholder="₡" className="flex-1 px-3 py-2 rounded-md text-sm outline-none font-mono" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-            <button onClick={() => { const p = parseFloat(mPrice); if (mName && p > 0) { onAddMenu(mName, p, mCat); setMName(''); setMPrice(''); } }} className="px-3 py-2 rounded-md" style={{ background: 'var(--tomato)', color: 'var(--flour)' }}><IconPlus size={15} /></button>
-          </div>
-        </div>
-      </div>
-      <div style={{ background: 'var(--crust)', border: '1px solid var(--line)', borderRadius: 10 }} className="p-4 mb-5">
-        <h3 style={{ color: 'var(--flour)' }} className="text-sm font-semibold mb-3">Ingredients</h3>
-        <div className="flex flex-col gap-1.5 mb-3">{ingredients.map((i) => <div key={i.id} className="flex items-center justify-between text-sm px-3 py-2 rounded-md" style={{ background: 'var(--crust-2)' }}><span style={{ color: 'var(--flour)' }}>{i.name} <span style={{ color: 'var(--flour-dim)' }} className="font-mono text-xs">· {i.stock} {i.unit} · min {i.threshold}</span></span><button onClick={() => onRemoveIngredient(i.id)} style={{ color: 'var(--tomato)' }}><IconTrash size={14} /></button></div>)}</div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          <input value={iName} onChange={(e) => setIName(e.target.value)} placeholder="Ingredient" className="col-span-2 sm:col-span-1 px-3 py-2 rounded-md text-sm outline-none" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-          <input value={iUnit} onChange={(e) => setIUnit(e.target.value)} placeholder="Unit (kg, l...)" className="px-3 py-2 rounded-md text-sm outline-none" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-          <input type="number" value={iStock} onChange={(e) => setIStock(e.target.value)} placeholder="Starting stock" className="px-3 py-2 rounded-md text-sm outline-none font-mono" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-          <input type="number" value={iThreshold} onChange={(e) => setIThreshold(e.target.value)} placeholder="Low stock at" className="px-3 py-2 rounded-md text-sm outline-none font-mono" style={{ background: 'var(--crust-2)', color: 'var(--flour)', border: '1px solid var(--line)' }} />
-          <button onClick={() => { const s = parseFloat(iStock) || 0; const t = parseFloat(iThreshold) || 0; if (iName && iUnit) { onAddIngredient(iName, iUnit, s, t); setIName(''); setIUnit(''); setIStock(''); setIThreshold(''); } }} className="px-3 py-2 rounded-md" style={{ background: 'var(--tomato)', color: 'var(--flour)' }}><IconPlus size={15} /></button>
-        </div>
-      </div>
-      {isOwner && (
-        <div style={{ background: 'var(--crust)', border: '1px solid var(--tomato-dim)', borderRadius: 10 }} className="p-4">
-          <h3 style={{ color: 'var(--tomato)' }} className="text-sm font-semibold mb-2">Danger zone</h3>
-          <p style={{ color: 'var(--flour-dim)' }} className="text-xs mb-3">Clears sales, orders, ingredient usage, and expense history for everyone. Menu and ingredients are kept.</p>
-          <button onClick={() => { if (confirmClear) { onClearLogs(); setConfirmClear(false); } else { setConfirmClear(true); setTimeout(() => setConfirmClear(false), 4000); } }} className="px-4 py-2 rounded-md text-sm font-semibold" style={{ background: confirmClear ? 'var(--tomato)' : 'var(--crust-2)', color: confirmClear ? 'var(--flour)' : 'var(--tomato)' }}>{confirmClear ? 'Click again to confirm' : 'Clear all activity'}</button>
-        </div>
-      )}
-    </div>
-  );
+  useEffect(() => {
+    setName(settings.businessName || '');
+  }, [settings.businessName]);
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+    title: "Setup",
+    subtitle: "Manage your menu, ingredients, and business info."
+  }), isOwner && /*#__PURE__*/React.createElement(TeamAccess, {
+    ownerEmail: ownerEmail,
+    authorizedUsers: authorizedUsers,
+    onAdd: onAddTeam,
+    onRemove: onRemoveTeam
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    },
+    className: "p-4 mb-5"
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-3"
+  }, "Business name"), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: name,
+    onChange: e => setName(e.target.value),
+    className: "flex-1 px-3 py-2 rounded-md text-sm outline-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => onSaveSettings(name),
+    className: "px-4 py-2 rounded-md text-sm font-semibold",
+    style: {
+      background: 'var(--tomato)',
+      color: 'var(--flour)'
+    }
+  }, "Save"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    },
+    className: "p-4 mb-5"
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-3"
+  }, "Menu items"), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-1.5 mb-3"
+  }, menu.map(m => /*#__PURE__*/React.createElement("div", {
+    key: m.id,
+    className: "flex items-center justify-between text-sm px-3 py-2 rounded-md",
+    style: {
+      background: 'var(--crust-2)'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, m.name, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "font-mono text-xs"
+  }, "· ", m.category, " · ", fmtCRC(m.price))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => onRemoveMenu(m.id),
+    style: {
+      color: 'var(--tomato)'
+    }
+  }, /*#__PURE__*/React.createElement(IconTrash, {
+    size: 14
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-4 gap-2"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: mName,
+    onChange: e => setMName(e.target.value),
+    placeholder: "Item name",
+    className: "px-3 py-2 rounded-md text-sm outline-none sm:col-span-2",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("select", {
+    value: mCat,
+    onChange: e => setMCat(e.target.value),
+    className: "px-3 py-2 rounded-md text-sm outline-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }, CATEGORIES.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c,
+    value: c
+  }, c))), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: mPrice,
+    onChange: e => setMPrice(e.target.value),
+    placeholder: "₡",
+    className: "flex-1 px-3 py-2 rounded-md text-sm outline-none font-mono",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      const p = parseFloat(mPrice);
+      if (mName && p > 0) {
+        onAddMenu(mName, p, mCat);
+        setMName('');
+        setMPrice('');
+      }
+    },
+    className: "px-3 py-2 rounded-md",
+    style: {
+      background: 'var(--tomato)',
+      color: 'var(--flour)'
+    }
+  }, /*#__PURE__*/React.createElement(IconPlus, {
+    size: 15
+  }))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    },
+    className: "p-4 mb-5"
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-3"
+  }, "Ingredients"), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-1.5 mb-3"
+  }, ingredients.map(i => /*#__PURE__*/React.createElement("div", {
+    key: i.id,
+    className: "flex items-center justify-between text-sm px-3 py-2 rounded-md",
+    style: {
+      background: 'var(--crust-2)'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, i.name, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "font-mono text-xs"
+  }, "· ", i.stock, " ", i.unit, " · min ", i.threshold)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => onRemoveIngredient(i.id),
+    style: {
+      color: 'var(--tomato)'
+    }
+  }, /*#__PURE__*/React.createElement(IconTrash, {
+    size: 14
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 sm:grid-cols-5 gap-2"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: iName,
+    onChange: e => setIName(e.target.value),
+    placeholder: "Ingredient",
+    className: "col-span-2 sm:col-span-1 px-3 py-2 rounded-md text-sm outline-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: iUnit,
+    onChange: e => setIUnit(e.target.value),
+    placeholder: "Unit (kg, l...)",
+    className: "px-3 py-2 rounded-md text-sm outline-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: iStock,
+    onChange: e => setIStock(e.target.value),
+    placeholder: "Starting stock",
+    className: "px-3 py-2 rounded-md text-sm outline-none font-mono",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: iThreshold,
+    onChange: e => setIThreshold(e.target.value),
+    placeholder: "Low stock at",
+    className: "px-3 py-2 rounded-md text-sm outline-none font-mono",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      const s = parseFloat(iStock) || 0;
+      const t = parseFloat(iThreshold) || 0;
+      if (iName && iUnit) {
+        onAddIngredient(iName, iUnit, s, t);
+        setIName('');
+        setIUnit('');
+        setIStock('');
+        setIThreshold('');
+      }
+    },
+    className: "px-3 py-2 rounded-md",
+    style: {
+      background: 'var(--tomato)',
+      color: 'var(--flour)'
+    }
+  }, /*#__PURE__*/React.createElement(IconPlus, {
+    size: 15
+  })))), isOwner && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--tomato-dim)',
+      borderRadius: 10
+    },
+    className: "p-4"
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--tomato)'
+    },
+    className: "text-sm font-semibold mb-2"
+  }, "Danger zone"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs mb-3"
+  }, "Clears sales, orders, ingredient usage, and expense history for everyone. Menu and ingredients are kept."), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (confirmClear) {
+        onClearLogs();
+        setConfirmClear(false);
+      } else {
+        setConfirmClear(true);
+        setTimeout(() => setConfirmClear(false), 4000);
+      }
+    },
+    className: "px-4 py-2 rounded-md text-sm font-semibold",
+    style: {
+      background: confirmClear ? 'var(--tomato)' : 'var(--crust-2)',
+      color: confirmClear ? 'var(--flour)' : 'var(--tomato)'
+    }
+  }, confirmClear ? 'Click again to confirm' : 'Clear all activity')));
 }
 
 /* ----------------------------- Auth screens ----------------------------- */
 
 function LoadingScreen() {
-  return <div style={{ background: 'var(--bg)', minHeight: 480 }} className="flex items-center justify-center"><div style={{ color: 'var(--flour-dim)' }} className="flex items-center gap-2 text-sm font-mono"><span className="spinner" /> Loading…</div></div>;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--bg)',
+      minHeight: 480
+    },
+    className: "flex items-center justify-center"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "flex items-center gap-2 text-sm font-mono"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "spinner"
+  }), " Loading…"));
 }
-function SignInScreen({ onSignIn }) {
-  return (
-    <div style={{ background: 'var(--bg)', minHeight: 480 }} className="flex flex-col items-center justify-center p-8 text-center">
-      <div style={{ background: 'var(--tomato)', borderRadius: 14 }} className="w-14 h-14 flex items-center justify-center mb-4"><IconPizza size={26} style={{ color: 'var(--flour)' }} /></div>
-      <h1 className="font-display" style={{ color: 'var(--flour)', fontSize: 26, fontWeight: 800 }}>{APP_NAME}</h1>
-      <p style={{ color: 'var(--flour-dim)' }} className="text-sm mt-2 mb-6 max-w-xs">Sign in with your Google account to log sales, orders, and inventory.</p>
-      <button onClick={onSignIn} className="px-5 py-2.5 rounded-lg text-sm font-semibold" style={{ background: 'var(--flour)', color: 'var(--bg)' }}>Sign in with Google</button>
-    </div>
-  );
+function SignInScreen({
+  onSignIn
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--bg)',
+      minHeight: 480
+    },
+    className: "flex flex-col items-center justify-center p-8 text-center"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--tomato)',
+      borderRadius: 14
+    },
+    className: "w-14 h-14 flex items-center justify-center mb-4"
+  }, /*#__PURE__*/React.createElement(IconPizza, {
+    size: 26,
+    style: {
+      color: 'var(--flour)'
+    }
+  })), /*#__PURE__*/React.createElement("h1", {
+    className: "font-display",
+    style: {
+      color: 'var(--flour)',
+      fontSize: 26,
+      fontWeight: 800
+    }
+  }, APP_NAME), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm mt-2 mb-6 max-w-xs"
+  }, "Sign in with your Google account to log sales, orders, and inventory."), /*#__PURE__*/React.createElement("button", {
+    onClick: onSignIn,
+    className: "px-5 py-2.5 rounded-lg text-sm font-semibold",
+    style: {
+      background: 'var(--flour)',
+      color: 'var(--bg)'
+    }
+  }, "Sign in with Google"));
 }
-function PendingScreen({ email, onSignOut }) {
-  return (
-    <div style={{ background: 'var(--bg)', minHeight: 480 }} className="flex flex-col items-center justify-center p-8 text-center">
-      <IconAlert size={30} style={{ color: 'var(--semolina)' }} />
-      <h1 className="font-display mt-3" style={{ color: 'var(--flour)', fontSize: 22, fontWeight: 800 }}>Not on the team yet</h1>
-      <p style={{ color: 'var(--flour-dim)' }} className="text-sm mt-2 mb-1 max-w-xs">Signed in as <span className="font-mono">{email}</span></p>
-      <p style={{ color: 'var(--flour-dim)' }} className="text-sm mb-6 max-w-xs">Ask the owner to add this email under Setup → Team access.</p>
-      <button onClick={onSignOut} className="px-4 py-2 rounded-md text-sm" style={{ background: 'var(--crust-2)', color: 'var(--flour)' }}>Sign out</button>
-    </div>
-  );
+function PendingScreen({
+  email,
+  onSignOut
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--bg)',
+      minHeight: 480
+    },
+    className: "flex flex-col items-center justify-center p-8 text-center"
+  }, /*#__PURE__*/React.createElement(IconAlert, {
+    size: 30,
+    style: {
+      color: 'var(--semolina)'
+    }
+  }), /*#__PURE__*/React.createElement("h1", {
+    className: "font-display mt-3",
+    style: {
+      color: 'var(--flour)',
+      fontSize: 22,
+      fontWeight: 800
+    }
+  }, "Not on the team yet"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm mt-2 mb-1 max-w-xs"
+  }, "Signed in as ", /*#__PURE__*/React.createElement("span", {
+    className: "font-mono"
+  }, email)), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm mb-6 max-w-xs"
+  }, "Ask the owner to add this email under Setup → Team access."), /*#__PURE__*/React.createElement("button", {
+    onClick: onSignOut,
+    className: "px-4 py-2 rounded-md text-sm",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)'
+    }
+  }, "Sign out"));
 }
 
 /* ----------------------------- App ----------------------------- */
@@ -621,21 +1880,22 @@ function App() {
   const [tab, setTab] = useState('dashboard');
   const [toast, setToast] = useState('');
   const toastTimer = useRef(null);
-  const showToast = useCallback((msg) => { setToast(msg); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(''), 2200); }, []);
-
-  useEffect(() => auth.onAuthStateChanged((u) => setUser(u)), []);
-
+  const showToast = useCallback(msg => {
+    setToast(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 2200);
+  }, []);
+  useEffect(() => auth.onAuthStateChanged(u => setUser(u)), []);
   useEffect(() => {
-    if (user === null) { setAuthState('signedOut'); return; }
+    if (user === null) {
+      setAuthState('signedOut');
+      return;
+    }
     setAuthState('checking');
-    db.doc('settings/main').get()
-      .then(() => setAuthState('ready'))
-      .catch((err) => setAuthState(err.code === 'permission-denied' ? 'pending' : 'signedOut'));
+    db.doc('settings/main').get().then(() => setAuthState('ready')).catch(err => setAuthState(err.code === 'permission-denied' ? 'pending' : 'signedOut'));
   }, [user]);
-
   const isOwner = !!(user && user.email === OWNER_EMAIL);
   const ready = authState === 'ready';
-
   const settings = useDocValue('settings/main', DEFAULT_SETTINGS, ready);
   const menu = useCollection('menu', [], ready);
   const ingredients = useCollection('ingredients', [], ready);
@@ -648,123 +1908,340 @@ function App() {
   // one-time seed for a brand new project (owner only)
   useEffect(() => {
     if (!ready || !isOwner) return;
-    db.doc('settings/main').get().then((snap) => {
+    db.doc('settings/main').get().then(snap => {
       if (snap.exists) return;
       const batch = db.batch();
       batch.set(db.doc('settings/main'), DEFAULT_SETTINGS);
-      SEED_MENU.forEach((m) => batch.set(db.collection('menu').doc(), m));
-      SEED_INGREDIENTS.forEach((i) => batch.set(db.collection('ingredients').doc(), i));
+      SEED_MENU.forEach(m => batch.set(db.collection('menu').doc(), m));
+      SEED_INGREDIENTS.forEach(i => batch.set(db.collection('ingredients').doc(), i));
       batch.commit();
     });
   }, [ready, isOwner]);
-
-  const who = () => (user ? { name: user.displayName || user.email, email: user.email } : { name: 'Team', email: '' });
-
+  const who = () => user ? {
+    name: user.displayName || user.email,
+    email: user.email
+  } : {
+    name: 'Team',
+    email: ''
+  };
   const completeSale = async (cart, total, payment) => {
     const w = who();
-    await db.collection('sales').add({ time: new Date().toISOString(), by: w.name, byEmail: w.email, items: cart, total, payment });
+    await db.collection('sales').add({
+      time: new Date().toISOString(),
+      by: w.name,
+      byEmail: w.email,
+      items: cart,
+      total,
+      payment
+    });
     showToast('Sale logged');
   };
   const createOrder = async (customer, items, notes) => {
     const w = who();
-    await db.collection('orders').add({ time: new Date().toISOString(), by: w.name, byEmail: w.email, customer, items, status: 'Pending', notes });
+    await db.collection('orders').add({
+      time: new Date().toISOString(),
+      by: w.name,
+      byEmail: w.email,
+      customer,
+      items,
+      status: 'Pending',
+      notes
+    });
     showToast('Order created');
   };
   const advanceOrder = async (id, currentStatus) => {
     const next = ORDER_STATUSES[Math.min(ORDER_STATUSES.indexOf(currentStatus) + 1, 3)];
-    await db.collection('orders').doc(id).update({ status: next });
+    await db.collection('orders').doc(id).update({
+      status: next
+    });
   };
   const logIngredient = async (ing, qty, type) => {
     const w = who();
     const delta = type === 'restock' ? qty : -qty;
-    await db.collection('ingredients').doc(ing.id).update({ stock: firebase.firestore.FieldValue.increment(delta) });
-    await db.collection('usageEvents').add({ time: new Date().toISOString(), by: w.name, byEmail: w.email, ingredientId: ing.id, ingredientName: ing.name, unit: ing.unit, qty, type });
+    await db.collection('ingredients').doc(ing.id).update({
+      stock: firebase.firestore.FieldValue.increment(delta)
+    });
+    await db.collection('usageEvents').add({
+      time: new Date().toISOString(),
+      by: w.name,
+      byEmail: w.email,
+      ingredientId: ing.id,
+      ingredientName: ing.name,
+      unit: ing.unit,
+      qty,
+      type
+    });
     showToast(type === 'restock' ? `Restocked ${ing.name}` : `Logged ${ing.name} used`);
   };
   const addExpense = async (description, category, amount) => {
     const w = who();
-    await db.collection('expenses').add({ time: new Date().toISOString(), by: w.name, byEmail: w.email, description, category, amount });
+    await db.collection('expenses').add({
+      time: new Date().toISOString(),
+      by: w.name,
+      byEmail: w.email,
+      description,
+      category,
+      amount
+    });
     showToast('Expense logged');
   };
-  const saveSettings = async (businessName) => { await db.doc('settings/main').set({ businessName }, { merge: true }); showToast('Saved'); };
-  const addMenuItem = async (name, price, category) => { await db.collection('menu').add({ name, price, category }); showToast('Menu item added'); };
-  const removeMenuItem = async (id) => { await db.collection('menu').doc(id).delete(); };
-  const addIngredient = async (name, unit, stock, threshold) => { await db.collection('ingredients').add({ name, unit, stock, threshold }); showToast('Ingredient added'); };
-  const removeIngredient = async (id) => { await db.collection('ingredients').doc(id).delete(); };
-  const addTeamMember = async (email) => { await db.collection('authorizedUsers').doc(email).set({ addedAt: new Date().toISOString(), addedBy: who().email }); showToast('Team member added'); };
-  const removeTeamMember = async (email) => { await db.collection('authorizedUsers').doc(email).delete(); };
+  const saveSettings = async businessName => {
+    await db.doc('settings/main').set({
+      businessName
+    }, {
+      merge: true
+    });
+    showToast('Saved');
+  };
+  const addMenuItem = async (name, price, category) => {
+    await db.collection('menu').add({
+      name,
+      price,
+      category
+    });
+    showToast('Menu item added');
+  };
+  const removeMenuItem = async id => {
+    await db.collection('menu').doc(id).delete();
+  };
+  const addIngredient = async (name, unit, stock, threshold) => {
+    await db.collection('ingredients').add({
+      name,
+      unit,
+      stock,
+      threshold
+    });
+    showToast('Ingredient added');
+  };
+  const removeIngredient = async id => {
+    await db.collection('ingredients').doc(id).delete();
+  };
+  const addTeamMember = async email => {
+    await db.collection('authorizedUsers').doc(email).set({
+      addedAt: new Date().toISOString(),
+      addedBy: who().email
+    });
+    showToast('Team member added');
+  };
+  const removeTeamMember = async email => {
+    await db.collection('authorizedUsers').doc(email).delete();
+  };
   const clearLogs = async () => {
     await Promise.all([clearCollection('sales', sales), clearCollection('orders', orders), clearCollection('usageEvents', usage), clearCollection('expenses', expenses)]);
     showToast('Activity cleared');
   };
-  const signIn = () => auth.signInWithPopup(googleProvider).catch((err) => console.error(err));
+  const signIn = () => auth.signInWithPopup(googleProvider).catch(err => console.error(err));
   const signOutUser = () => auth.signOut();
-
-  const activeOrdersCount = orders.filter((o) => o.status !== 'Delivered').length;
-  const lowStockCount = ingredients.filter((i) => i.stock <= i.threshold).length;
-
-  const NAV = [
-    { id: 'dashboard', label: 'Dashboard', Icon: IconDashboard },
-    { id: 'sale', label: 'Log sale', Icon: IconCart },
-    { id: 'orders', label: 'Orders', Icon: IconClipboard, badge: activeOrdersCount },
-    { id: 'inventory', label: 'Inventory', Icon: IconPackage, badge: lowStockCount },
-    { id: 'expenses', label: 'Expenses', Icon: IconWallet },
-    { id: 'setup', label: 'Setup', Icon: IconSettings },
-  ];
-
-  if (authState === 'loading' || authState === 'checking') return <LoadingScreen />;
-  if (authState === 'signedOut') return <SignInScreen onSignIn={signIn} />;
-  if (authState === 'pending') return <PendingScreen email={user.email} onSignOut={signOutUser} />;
-
-  return (
-    <div style={{ background: 'var(--bg)', minHeight: 600 }} className="flex flex-col md:flex-row rounded-xl overflow-hidden">
-      <aside className="hidden md:flex md:flex-col md:w-56 flex-shrink-0 p-4" style={{ borderRight: '1px solid var(--line)' }}>
-        <div className="flex items-center gap-2 mb-6 px-1">
-          <div style={{ background: 'var(--tomato)', borderRadius: 8 }} className="w-8 h-8 flex items-center justify-center flex-shrink-0"><IconPizza size={17} style={{ color: 'var(--flour)' }} /></div>
-          <span className="font-display" style={{ color: 'var(--flour)', fontSize: 17, fontWeight: 800 }}>{settings.businessName}</span>
-        </div>
-        <nav className="flex flex-col gap-1 flex-1">{NAV.map((n) => <NavItem key={n.id} Icon={n.Icon} label={n.label} active={tab === n.id} badge={n.badge} onClick={() => setTab(n.id)} />)}</nav>
-        <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--line)' }}>
-          <div style={{ color: 'var(--flour)' }} className="text-sm truncate">{user.displayName || user.email}</div>
-          <div style={{ color: 'var(--flour-dim)' }} className="text-xs truncate mb-2">{user.email}</div>
-          <button onClick={signOutUser} className="text-xs underline mb-3" style={{ color: 'var(--flour-dim)' }}>Sign out</button>
-          <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--flour-dim)' }}><span className="pulse-dot" /> Live</div>
-        </div>
-      </aside>
-
-      <div className="md:hidden flex items-center justify-between p-4" style={{ borderBottom: '1px solid var(--line)' }}>
-        <div className="flex items-center gap-2">
-          <div style={{ background: 'var(--tomato)', borderRadius: 8 }} className="w-7 h-7 flex items-center justify-center"><IconPizza size={15} style={{ color: 'var(--flour)' }} /></div>
-          <span className="font-display" style={{ color: 'var(--flour)', fontSize: 16, fontWeight: 800 }}>{settings.businessName}</span>
-        </div>
-        <button onClick={signOutUser} className="text-xs px-2 py-1 rounded-md" style={{ background: 'var(--crust-2)', color: 'var(--flour-dim)' }}>Sign out</button>
-      </div>
-
-      <main className="flex-1 p-4 md:p-6 overflow-x-hidden pb-20 md:pb-6">
-        {tab === 'dashboard' && <Dashboard sales={sales} orders={orders} ingredients={ingredients} expenses={expenses} usage={usage} businessName={settings.businessName} />}
-        {tab === 'sale' && <LogSale menu={menu} onCompleteSale={completeSale} />}
-        {tab === 'orders' && <Orders orders={orders} menu={menu} onCreate={createOrder} onAdvance={advanceOrder} />}
-        {tab === 'inventory' && <Inventory ingredients={ingredients} onLog={logIngredient} />}
-        {tab === 'expenses' && <Expenses expenses={expenses} onAdd={addExpense} />}
-        {tab === 'setup' && <Setup settings={settings} menu={menu} ingredients={ingredients} isOwner={isOwner} ownerEmail={OWNER_EMAIL} authorizedUsers={authorizedUsers} onSaveSettings={saveSettings} onAddMenu={addMenuItem} onRemoveMenu={removeMenuItem} onAddIngredient={addIngredient} onRemoveIngredient={removeIngredient} onClearLogs={clearLogs} onAddTeam={addTeamMember} onRemoveTeam={removeTeamMember} />}
-      </main>
-
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around py-2 z-40" style={{ background: 'var(--crust)', borderTop: '1px solid var(--line)' }}>
-        {NAV.map((n) => { const Icon = n.Icon; return (
-          <button key={n.id} onClick={() => setTab(n.id)} className="relative flex flex-col items-center gap-0.5 px-2 py-1">
-            <Icon size={18} style={{ color: tab === n.id ? 'var(--tomato)' : 'var(--flour-dim)' }} />
-            <span style={{ color: tab === n.id ? 'var(--flour)' : 'var(--flour-dim)', fontSize: 9 }}>{n.label}</span>
-            {n.badge > 0 && <span style={{ background: 'var(--tomato)' }} className="absolute -top-0.5 right-0 w-2 h-2 rounded-full" />}
-          </button>
-        ); })}
-      </nav>
-      <Toast message={toast} />
-    </div>
-  );
+  const activeOrdersCount = orders.filter(o => o.status !== 'Delivered').length;
+  const lowStockCount = ingredients.filter(i => i.stock <= i.threshold).length;
+  const NAV = [{
+    id: 'dashboard',
+    label: 'Dashboard',
+    Icon: IconDashboard
+  }, {
+    id: 'sale',
+    label: 'Log sale',
+    Icon: IconCart
+  }, {
+    id: 'orders',
+    label: 'Orders',
+    Icon: IconClipboard,
+    badge: activeOrdersCount
+  }, {
+    id: 'inventory',
+    label: 'Inventory',
+    Icon: IconPackage,
+    badge: lowStockCount
+  }, {
+    id: 'expenses',
+    label: 'Expenses',
+    Icon: IconWallet
+  }, {
+    id: 'setup',
+    label: 'Setup',
+    Icon: IconSettings
+  }];
+  if (authState === 'loading' || authState === 'checking') return /*#__PURE__*/React.createElement(LoadingScreen, null);
+  if (authState === 'signedOut') return /*#__PURE__*/React.createElement(SignInScreen, {
+    onSignIn: signIn
+  });
+  if (authState === 'pending') return /*#__PURE__*/React.createElement(PendingScreen, {
+    email: user.email,
+    onSignOut: signOutUser
+  });
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--bg)',
+      minHeight: 600
+    },
+    className: "flex flex-col md:flex-row rounded-xl overflow-hidden"
+  }, /*#__PURE__*/React.createElement("aside", {
+    className: "hidden md:flex md:flex-col md:w-56 flex-shrink-0 p-4",
+    style: {
+      borderRight: '1px solid var(--line)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 mb-6 px-1"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--tomato)',
+      borderRadius: 8
+    },
+    className: "w-8 h-8 flex items-center justify-center flex-shrink-0"
+  }, /*#__PURE__*/React.createElement(IconPizza, {
+    size: 17,
+    style: {
+      color: 'var(--flour)'
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "font-display",
+    style: {
+      color: 'var(--flour)',
+      fontSize: 17,
+      fontWeight: 800
+    }
+  }, settings.businessName)), /*#__PURE__*/React.createElement("nav", {
+    className: "flex flex-col gap-1 flex-1"
+  }, NAV.map(n => /*#__PURE__*/React.createElement(NavItem, {
+    key: n.id,
+    Icon: n.Icon,
+    label: n.label,
+    active: tab === n.id,
+    badge: n.badge,
+    onClick: () => setTab(n.id)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4 pt-4",
+    style: {
+      borderTop: '1px solid var(--line)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm truncate"
+  }, user.displayName || user.email), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs truncate mb-2"
+  }, user.email), /*#__PURE__*/React.createElement("button", {
+    onClick: signOutUser,
+    className: "text-xs underline mb-3",
+    style: {
+      color: 'var(--flour-dim)'
+    }
+  }, "Sign out"), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1.5 text-xs",
+    style: {
+      color: 'var(--flour-dim)'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "pulse-dot"
+  }), " Live"))), /*#__PURE__*/React.createElement("div", {
+    className: "md:hidden flex items-center justify-between p-4",
+    style: {
+      borderBottom: '1px solid var(--line)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--tomato)',
+      borderRadius: 8
+    },
+    className: "w-7 h-7 flex items-center justify-center"
+  }, /*#__PURE__*/React.createElement(IconPizza, {
+    size: 15,
+    style: {
+      color: 'var(--flour)'
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "font-display",
+    style: {
+      color: 'var(--flour)',
+      fontSize: 16,
+      fontWeight: 800
+    }
+  }, settings.businessName)), /*#__PURE__*/React.createElement("button", {
+    onClick: signOutUser,
+    className: "text-xs px-2 py-1 rounded-md",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour-dim)'
+    }
+  }, "Sign out")), /*#__PURE__*/React.createElement("main", {
+    className: "flex-1 p-4 md:p-6 overflow-x-hidden pb-20 md:pb-6"
+  }, tab === 'dashboard' && /*#__PURE__*/React.createElement(Dashboard, {
+    sales: sales,
+    orders: orders,
+    ingredients: ingredients,
+    expenses: expenses,
+    usage: usage,
+    businessName: settings.businessName
+  }), tab === 'sale' && /*#__PURE__*/React.createElement(LogSale, {
+    menu: menu,
+    onCompleteSale: completeSale
+  }), tab === 'orders' && /*#__PURE__*/React.createElement(Orders, {
+    orders: orders,
+    menu: menu,
+    onCreate: createOrder,
+    onAdvance: advanceOrder
+  }), tab === 'inventory' && /*#__PURE__*/React.createElement(Inventory, {
+    ingredients: ingredients,
+    onLog: logIngredient
+  }), tab === 'expenses' && /*#__PURE__*/React.createElement(Expenses, {
+    expenses: expenses,
+    onAdd: addExpense
+  }), tab === 'setup' && /*#__PURE__*/React.createElement(Setup, {
+    settings: settings,
+    menu: menu,
+    ingredients: ingredients,
+    isOwner: isOwner,
+    ownerEmail: OWNER_EMAIL,
+    authorizedUsers: authorizedUsers,
+    onSaveSettings: saveSettings,
+    onAddMenu: addMenuItem,
+    onRemoveMenu: removeMenuItem,
+    onAddIngredient: addIngredient,
+    onRemoveIngredient: removeIngredient,
+    onClearLogs: clearLogs,
+    onAddTeam: addTeamMember,
+    onRemoveTeam: removeTeamMember
+  })), /*#__PURE__*/React.createElement("nav", {
+    className: "md:hidden fixed bottom-0 left-0 right-0 flex justify-around py-2 z-40",
+    style: {
+      background: 'var(--crust)',
+      borderTop: '1px solid var(--line)'
+    }
+  }, NAV.map(n => {
+    const Icon = n.Icon;
+    return /*#__PURE__*/React.createElement("button", {
+      key: n.id,
+      onClick: () => setTab(n.id),
+      className: "relative flex flex-col items-center gap-0.5 px-2 py-1"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      size: 18,
+      style: {
+        color: tab === n.id ? 'var(--tomato)' : 'var(--flour-dim)'
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: tab === n.id ? 'var(--flour)' : 'var(--flour-dim)',
+        fontSize: 9
+      }
+    }, n.label), n.badge > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        background: 'var(--tomato)'
+      },
+      className: "absolute -top-0.5 right-0 w-2 h-2 rounded-full"
+    }));
+  })), /*#__PURE__*/React.createElement(Toast, {
+    message: toast
+  }));
 }
-
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+root.render(/*#__PURE__*/React.createElement(App, null));
+
 </script>
 </body>
 </html>
