@@ -29,13 +29,19 @@
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-:root {
+:root, [data-theme="dark"] {
   --bg: #201B16; --crust: #2A2318; --crust-2: #332B1E;
   --line: rgba(242,232,210,0.10); --flour: #F2E8D2; --flour-dim: #B7AB8E;
   --tomato: #C7401C; --tomato-dim: #5c2210; --basil: #5C8A54; --semolina: #E3AA3E;
 }
+[data-theme="light"] {
+  --bg: #F7F1E3; --crust: #FFFFFF; --crust-2: #F1E8D4;
+  --line: rgba(42,35,24,0.12); --flour: #2A2318; --flour-dim: #7A6F58;
+  --tomato: #C7401C; --tomato-dim: #EAD0C4; --basil: #3E6B39; --semolina: #A6701C;
+}
 * { box-sizing: border-box; }
 html, body { background: var(--bg); margin: 0; }
+body, .themed-surface { transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease; }
 div, span, button, input, select, textarea, label, nav, main, aside, h1, h2, h3, p { font-family: 'Inter', sans-serif; }
 .font-display { font-family: 'Big Shoulders Display', sans-serif; letter-spacing: -0.01em; }
 .font-mono { font-family: 'IBM Plex Mono', monospace; }
@@ -89,10 +95,11 @@ db.enablePersistence({
 }).catch(() => {});
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 const APP_NAME = "Pastas Para Pizza";
-const CATEGORIES = ['Pizza', 'Drink', 'Side', 'Dessert'];
+const CATEGORIES = ['Pasta Base', 'Salsa', 'Pizza Congelada', 'Pizza Horneada'];
 const PAYMENT_METHODS = ['Cash', 'Card', 'SINPE'];
 const EXPENSE_CATEGORIES = ['Ingredients', 'Utilities', 'Rent', 'Salaries', 'Equipment', 'Other'];
 const ORDER_STATUSES = ['Pending', 'Preparing', 'Ready', 'Delivered'];
+const UNITS = ['kg', 'g', 'L', 'ml', 'unidad'];
 const DEFAULT_SETTINGS = {
   businessName: 'Mi Pizzería'
 };
@@ -168,6 +175,183 @@ const SEED_INGREDIENTS = [{
   unit: 'kg',
   stock: 4,
   threshold: 1
+}];
+
+// Your real product line, from "Línea de Productos - PPP.pdf" — used by the
+// one-time "Update to official product list" button in Setup.
+const OFFICIAL_MENU = [{
+  name: 'Pasta para pizza sencilla',
+  price: 5600,
+  category: 'Pasta Base'
+}, {
+  name: 'Pasta para pizza de albahaca',
+  price: 6000,
+  category: 'Pasta Base'
+}, {
+  name: 'Pasta para pizza de orégano',
+  price: 6000,
+  category: 'Pasta Base'
+}, {
+  name: 'Pasta para pizza de romero',
+  price: 6000,
+  category: 'Pasta Base'
+}, {
+  name: 'Salsa de tomate natural',
+  price: 5000,
+  category: 'Salsa'
+}, {
+  name: 'Pizza congelada mediana',
+  price: 12000,
+  category: 'Pizza Congelada'
+}, {
+  name: 'Pizza congelada pequeña',
+  price: 8000,
+  category: 'Pizza Congelada'
+}, {
+  name: 'Pizza horneada extra grande (16", 12 porciones)',
+  price: 16000,
+  category: 'Pizza Horneada'
+}, {
+  name: 'Pizza horneada grande (14", 10 porciones)',
+  price: 14000,
+  category: 'Pizza Horneada'
+}, {
+  name: 'Pizza horneada mediana (12", 8 porciones)',
+  price: 12500,
+  category: 'Pizza Horneada'
+}, {
+  name: 'Pizza horneada pequeña (10", 6 porciones)',
+  price: 9000,
+  category: 'Pizza Horneada'
+}];
+
+// The customizable toppings from your product line — added (not replacing
+// existing ingredients) by the "Add real toppings" button in Setup.
+const TOPPING_INGREDIENTS = [{
+  name: 'Jamón',
+  unit: 'kg',
+  stock: 0,
+  threshold: 1,
+  price: 0
+}, {
+  name: 'Pepperoni',
+  unit: 'kg',
+  stock: 0,
+  threshold: 1,
+  price: 0
+}, {
+  name: 'Hongos frescos',
+  unit: 'kg',
+  stock: 0,
+  threshold: 1,
+  price: 0
+}, {
+  name: 'Cebolla',
+  unit: 'kg',
+  stock: 0,
+  threshold: 1,
+  price: 0
+}, {
+  name: 'Chile dulce',
+  unit: 'kg',
+  stock: 0,
+  threshold: 1,
+  price: 0
+}, {
+  name: 'Piña',
+  unit: 'kg',
+  stock: 0,
+  threshold: 0.5,
+  price: 0
+}, {
+  name: 'Tocineta',
+  unit: 'kg',
+  stock: 0,
+  threshold: 1,
+  price: 0
+}, {
+  name: 'Aceitunas negras',
+  unit: 'kg',
+  stock: 0,
+  threshold: 0.5,
+  price: 0
+}];
+
+// Parsed from your sales/order notes — used by the one-time "Import sales
+// & order history" button in Setup. Completed sales go to Sales; pending
+// pedidos go to Orders.
+const HISTORICAL_SALES = [{
+  time: '2026-07-11T12:00:00-06:00',
+  items: [{
+    id: 'imp-1',
+    name: 'Pasta para pizza sencilla',
+    qty: 1,
+    price: 5600
+  }],
+  total: 5600,
+  payment: 'Cash',
+  notes: ''
+}, {
+  time: '2026-07-22T13:00:00-06:00',
+  items: [{
+    id: 'imp-2',
+    name: 'Pizza congelada mediana',
+    qty: 3,
+    price: 12000
+  }, {
+    id: 'imp-3',
+    name: 'Pizza congelada mediana',
+    qty: 2,
+    price: 12000
+  }],
+  total: 60000,
+  payment: 'Cash',
+  notes: '3 con todo (jamón, pepperoni, hongos, cebolla, chile dulce, aceitunas); 2 de pepperoni y hongos frescos. Transporte obsequiado por compra ≥ ₡60.000.'
+}, {
+  time: '2026-07-23T12:00:00-06:00',
+  items: [{
+    id: 'imp-4',
+    name: 'Pizza horneada mediana (12", 8 porciones)',
+    qty: 2,
+    price: 11000
+  }],
+  total: 22000,
+  payment: 'Cash',
+  notes: '2 margaritas.'
+}];
+const HISTORICAL_ORDERS = [{
+  time: '2026-07-24T09:00:00-06:00',
+  customer: 'Cliente (recoge en tienda)',
+  items: [{
+    name: 'Pizza horneada pequeña (10", 6 porciones)',
+    qty: 1
+  }],
+  status: 'Pending',
+  notes: 'Precio ₡9.500, con todo. Entregar 11:00am, cliente recoge en tienda.'
+}, {
+  time: '2026-07-24T09:30:00-06:00',
+  customer: 'Cliente (entrega a domicilio)',
+  items: [{
+    name: 'Pizza horneada extra grande (16", 12 porciones)',
+    qty: 1
+  }],
+  status: 'Pending',
+  notes: 'Precio ₡16.000, con todo. Entregar 12:00pm, entrega a domicilio — transporte lo paga el cliente.'
+}, {
+  time: '2026-07-24T10:00:00-06:00',
+  customer: 'Cliente (entrega domingo 26 julio)',
+  items: [{
+    name: 'Pizza congelada mediana',
+    qty: 2
+  }, {
+    name: 'Pizza congelada pequeña',
+    qty: 2
+  }, {
+    name: 'Pizza congelada mediana',
+    qty: 2
+  }],
+  status: 'Pending',
+  notes: 'Total ₡64.000 (2 jamón y hongos frescos; 2 pequeñas de jamón; 2 medianas con todo). Entregar domingo 26 de julio 2026.'
 }];
 
 /* ----------------------------- helpers ----------------------------- */
@@ -429,6 +613,54 @@ const IconDownload = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PUR
   x2: "12",
   y2: "3"
 }));
+const IconSun = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("circle", {
+  cx: "12",
+  cy: "12",
+  r: "4.5"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "12",
+  y1: "1.5",
+  x2: "12",
+  y2: "4"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "12",
+  y1: "20",
+  x2: "12",
+  y2: "22.5"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "4.2",
+  y1: "4.2",
+  x2: "5.9",
+  y2: "5.9"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "18.1",
+  y1: "18.1",
+  x2: "19.8",
+  y2: "19.8"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "1.5",
+  y1: "12",
+  x2: "4",
+  y2: "12"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "20",
+  y1: "12",
+  x2: "22.5",
+  y2: "12"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "4.2",
+  y1: "19.8",
+  x2: "5.9",
+  y2: "18.1"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "18.1",
+  y1: "5.9",
+  x2: "19.8",
+  y2: "4.2"
+}));
+const IconMoon = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"
+}));
 
 /* ----------------------------- CSV export helpers ----------------------------- */
 
@@ -680,12 +912,17 @@ function ItemPicker({
 /* ----------------------------- chart ----------------------------- */
 
 function SalesTrendChart({
-  data
+  data,
+  theme
 }) {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
   useEffect(() => {
     if (!canvasRef.current || typeof Chart === 'undefined') return;
+    const css = getComputedStyle(document.documentElement);
+    const tomato = css.getPropertyValue('--tomato').trim() || '#C7401C';
+    const dim = css.getPropertyValue('--flour-dim').trim() || '#B7AB8E';
+    const gridColor = theme === 'light' ? 'rgba(42,35,24,0.08)' : 'rgba(242,232,210,0.08)';
     if (chartRef.current) chartRef.current.destroy();
     chartRef.current = new Chart(canvasRef.current.getContext('2d'), {
       type: 'bar',
@@ -693,7 +930,7 @@ function SalesTrendChart({
         labels: data.map(d => d.day),
         datasets: [{
           data: data.map(d => d.total),
-          backgroundColor: '#C7401C',
+          backgroundColor: tomato,
           borderRadius: 4,
           maxBarThickness: 36
         }]
@@ -717,7 +954,7 @@ function SalesTrendChart({
               display: false
             },
             ticks: {
-              color: '#B7AB8E',
+              color: dim,
               font: {
                 size: 11
               }
@@ -725,10 +962,10 @@ function SalesTrendChart({
           },
           y: {
             grid: {
-              color: 'rgba(242,232,210,0.08)'
+              color: gridColor
             },
             ticks: {
-              color: '#B7AB8E',
+              color: dim,
               font: {
                 size: 10
               },
@@ -741,7 +978,7 @@ function SalesTrendChart({
     return () => {
       if (chartRef.current) chartRef.current.destroy();
     };
-  }, [data]);
+  }, [data, theme]);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       height: 200
@@ -759,7 +996,8 @@ function Dashboard({
   ingredients,
   expenses,
   usage,
-  businessName
+  businessName,
+  theme
 }) {
   const todaySales = sales.filter(s => isToday(s.time));
   const todaySalesTotal = todaySales.reduce((a, s) => a + s.total, 0);
@@ -875,7 +1113,8 @@ function Dashboard({
     },
     className: "text-sm font-semibold mb-3"
   }, "Sales, last 7 days"), /*#__PURE__*/React.createElement(SalesTrendChart, {
-    data: last7
+    data: last7,
+    theme: theme
   })), /*#__PURE__*/React.createElement("div", {
     className: "lg:col-span-2 p-4",
     style: {
@@ -969,6 +1208,7 @@ function LogSale({
   const [cart, setCart] = useState([]);
   const [payment, setPayment] = useState('Cash');
   const [filterCat, setFilterCat] = useState('All');
+  const [notes, setNotes] = useState('');
   const add = item => setCart(c => {
     const ex = c.find(x => x.id === item.id);
     if (ex) return c.map(x => x.id === item.id ? {
@@ -1052,11 +1292,23 @@ function LogSale({
       background: payment === p ? 'var(--basil)' : 'var(--crust-2)',
       color: payment === p ? '#0F1A0E' : 'var(--flour-dim)'
     }
-  }, p))), /*#__PURE__*/React.createElement("button", {
+  }, p))), /*#__PURE__*/React.createElement("textarea", {
+    value: notes,
+    onChange: e => setNotes(e.target.value),
+    placeholder: "Notes — custom toppings, etc. (optional)",
+    rows: 2,
+    className: "w-full mb-3 px-3 py-2 rounded-md text-sm outline-none resize-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       if (cart.length) {
-        onCompleteSale(cart, total, payment);
+        onCompleteSale(cart, total, payment, notes);
         setCart([]);
+        setNotes('');
       }
     },
     disabled: cart.length === 0,
@@ -1163,7 +1415,8 @@ function Orders({
   orders,
   menu,
   onCreate,
-  onAdvance
+  onAdvance,
+  onDelete
 }) {
   const [showForm, setShowForm] = useState(false);
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
@@ -1203,48 +1456,13 @@ function Orders({
       className: "text-xs font-mono"
     }, list.length)), /*#__PURE__*/React.createElement("div", {
       className: "flex flex-col gap-2"
-    }, list.map(o => /*#__PURE__*/React.createElement(Ticket, {
+    }, list.map(o => /*#__PURE__*/React.createElement(OrderCard, {
       key: o.id,
-      style: {
-        padding: '10px 12px'
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: 'var(--flour)'
-      },
-      className: "text-sm font-medium"
-    }, o.customer || 'Walk-in'), /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: 'var(--flour-dim)'
-      },
-      className: "text-xs font-mono mt-1"
-    }, o.items.map(it => `${it.qty}× ${it.name}`).join(', ')), o.notes && /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: 'var(--flour-dim)'
-      },
-      className: "text-xs italic mt-1"
-    }, o.notes), /*#__PURE__*/React.createElement("div", {
-      className: "flex items-center justify-between mt-2"
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: 'var(--flour-dim)'
-      },
-      className: "text-xs font-mono"
-    }, fmtTime(o.time)), status !== 'Delivered' && /*#__PURE__*/React.createElement("button", {
-      onClick: () => onAdvance(o.id, o.status),
-      className: "flex items-center gap-1 text-xs font-mono px-2 py-1 rounded-md",
-      style: {
-        background: 'var(--basil)',
-        color: '#0F1A0E'
-      }
-    }, ORDER_STATUSES[ORDER_STATUSES.indexOf(status) + 1], " ", /*#__PURE__*/React.createElement(IconArrowRight, {
-      size: 11
-    })), status === 'Delivered' && /*#__PURE__*/React.createElement(IconCheck, {
-      size: 14,
-      style: {
-        color: 'var(--basil)'
-      }
-    })))), list.length === 0 && /*#__PURE__*/React.createElement("div", {
+      o: o,
+      status: status,
+      onAdvance: onAdvance,
+      onDelete: onDelete
+    })), list.length === 0 && /*#__PURE__*/React.createElement("div", {
       style: {
         color: 'var(--flour-dim)',
         border: '1px dashed var(--line)'
@@ -1253,12 +1471,81 @@ function Orders({
     }, "—")));
   })));
 }
+function OrderCard({
+  o,
+  status,
+  onAdvance,
+  onDelete
+}) {
+  const [confirm, setConfirm] = useState(false);
+  return /*#__PURE__*/React.createElement(Ticket, {
+    style: {
+      padding: '10px 12px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-start justify-between gap-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-medium"
+  }, o.customer || 'Walk-in'), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (confirm) {
+        onDelete(o.id);
+        setConfirm(false);
+      } else {
+        setConfirm(true);
+        setTimeout(() => setConfirm(false), 3000);
+      }
+    },
+    className: "p-1 rounded-md flex-shrink-0",
+    style: {
+      background: confirm ? 'var(--tomato)' : 'transparent',
+      color: confirm ? 'var(--flour)' : 'var(--flour-dim)'
+    }
+  }, /*#__PURE__*/React.createElement(IconTrash, {
+    size: 12
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs font-mono mt-1"
+  }, o.items.map(it => `${it.qty}× ${it.name}`).join(', ')), o.notes && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs italic mt-1"
+  }, o.notes), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mt-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs font-mono"
+  }, fmtTime(o.time)), status !== 'Delivered' && /*#__PURE__*/React.createElement("button", {
+    onClick: () => onAdvance(o.id, o.status),
+    className: "flex items-center gap-1 text-xs font-mono px-2 py-1 rounded-md",
+    style: {
+      background: 'var(--basil)',
+      color: '#0F1A0E'
+    }
+  }, ORDER_STATUSES[ORDER_STATUSES.indexOf(status) + 1], " ", /*#__PURE__*/React.createElement(IconArrowRight, {
+    size: 11
+  })), status === 'Delivered' && /*#__PURE__*/React.createElement(IconCheck, {
+    size: 14,
+    style: {
+      color: 'var(--basil)'
+    }
+  })));
+}
 
 /* ----------------------------- Inventory ----------------------------- */
 
 function IngredientCard({
   ing,
-  onLog
+  onLog,
+  onUpdatePrice
 }) {
   const [qty, setQty] = useState('1');
   const low = ing.stock <= ing.threshold;
@@ -1298,6 +1585,30 @@ function IngredientCard({
   }, /*#__PURE__*/React.createElement(IconAlert, {
     size: 12
   }), " Low stock"), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1.5 mb-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs"
+  }, "Cost per ", ing.unit, ":"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs font-mono"
+  }, "₡"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "0",
+    defaultValue: ing.price || '',
+    placeholder: "0",
+    onBlur: e => onUpdatePrice(ing.id, e.target.value),
+    className: "w-20 px-2 py-1 rounded-md text-xs font-mono outline-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  })), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-1.5"
   }, /*#__PURE__*/React.createElement("input", {
     type: "number",
@@ -1335,7 +1646,8 @@ function IngredientCard({
 }
 function Inventory({
   ingredients,
-  onLog
+  onLog,
+  onUpdatePrice
 }) {
   const lowCount = ingredients.filter(i => i.stock <= i.threshold).length;
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
@@ -1346,7 +1658,8 @@ function Inventory({
   }, ingredients.map(ing => /*#__PURE__*/React.createElement(IngredientCard, {
     key: ing.id,
     ing: ing,
-    onLog: onLog
+    onLog: onLog,
+    onUpdatePrice: onUpdatePrice
   })), ingredients.length === 0 && /*#__PURE__*/React.createElement("p", {
     style: {
       color: 'var(--flour-dim)'
@@ -1359,7 +1672,8 @@ function Inventory({
 
 function Expenses({
   expenses,
-  onAdd
+  onAdd,
+  onDelete
 }) {
   const [desc, setDesc] = useState('');
   const [cat, setCat] = useState(EXPENSE_CATEGORIES[0]);
@@ -1429,8 +1743,23 @@ function Expenses({
     size: 15
   })))), /*#__PURE__*/React.createElement("div", {
     className: "flex flex-col gap-2"
-  }, sorted.map(e => /*#__PURE__*/React.createElement(Ticket, {
+  }, sorted.map(e => /*#__PURE__*/React.createElement(ExpenseRow, {
     key: e.id,
+    e: e,
+    onDelete: onDelete
+  })), sorted.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm"
+  }, "No expenses logged yet.")));
+}
+function ExpenseRow({
+  e,
+  onDelete
+}) {
+  const [confirm, setConfirm] = useState(false);
+  return /*#__PURE__*/React.createElement(Ticket, {
     style: {
       padding: '10px 14px'
     }
@@ -1443,109 +1772,41 @@ function Expenses({
       color: 'var(--flour)'
     },
     className: "text-sm truncate"
-  }, e.description || e.category), /*#__PURE__*/React.createElement("div", {
+  }, e.description || e.category, e.auto && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs"
+  }, " · auto")), /*#__PURE__*/React.createElement("div", {
     style: {
       color: 'var(--flour-dim)'
     },
     className: "text-xs font-mono"
   }, e.category, " · ", fmtTime(e.time), " · ", e.by || 'Team')), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 flex-shrink-0"
+  }, /*#__PURE__*/React.createElement("div", {
     className: "font-mono text-sm",
     style: {
       color: 'var(--tomato)'
     }
-  }, fmtCRC(e.amount))))), sorted.length === 0 && /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: 'var(--flour-dim)'
-    },
-    className: "text-sm"
-  }, "No expenses logged yet.")));
-}
-
-/* ----------------------------- Team access ----------------------------- */
-
-function TeamAccess({
-  ownerEmail,
-  authorizedUsers,
-  onAdd,
-  onRemove
-}) {
-  const [email, setEmail] = useState('');
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: 'var(--crust)',
-      border: '1px solid var(--line)',
-      borderRadius: 10
-    },
-    className: "p-4 mb-5"
-  }, /*#__PURE__*/React.createElement("h3", {
-    style: {
-      color: 'var(--flour)'
-    },
-    className: "text-sm font-semibold mb-1"
-  }, "Team access"), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: 'var(--flour-dim)'
-    },
-    className: "text-xs mb-3"
-  }, "Only people signed in with an approved Google account can open this dashboard. You control that list here."), /*#__PURE__*/React.createElement("div", {
-    className: "flex flex-col gap-1.5 mb-3"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between text-sm px-3 py-2 rounded-md",
-    style: {
-      background: 'var(--crust-2)'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: 'var(--flour)'
-    }
-  }, ownerEmail, " ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: 'var(--basil)'
-    },
-    className: "text-xs font-mono"
-  }, "· owner"))), authorizedUsers.map(u => /*#__PURE__*/React.createElement("div", {
-    key: u.id,
-    className: "flex items-center justify-between text-sm px-3 py-2 rounded-md",
-    style: {
-      background: 'var(--crust-2)'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: 'var(--flour)'
-    }
-  }, u.id), /*#__PURE__*/React.createElement("button", {
-    onClick: () => onRemove(u.id),
-    style: {
-      color: 'var(--tomato)'
-    }
-  }, /*#__PURE__*/React.createElement(IconTrash, {
-    size: 14
-  }))))), /*#__PURE__*/React.createElement("div", {
-    className: "flex gap-2"
-  }, /*#__PURE__*/React.createElement("input", {
-    value: email,
-    onChange: e => setEmail(e.target.value),
-    placeholder: "colleague@gmail.com",
-    className: "flex-1 px-3 py-2 rounded-md text-sm outline-none",
-    style: {
-      background: 'var(--crust-2)',
-      color: 'var(--flour)',
-      border: '1px solid var(--line)'
-    }
-  }), /*#__PURE__*/React.createElement("button", {
+  }, fmtCRC(e.amount)), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      const e2 = email.trim().toLowerCase();
-      if (e2.includes('@')) {
-        onAdd(e2);
-        setEmail('');
+      if (confirm) {
+        onDelete(e.id);
+        setConfirm(false);
+      } else {
+        setConfirm(true);
+        setTimeout(() => setConfirm(false), 3000);
       }
     },
-    className: "px-4 py-2 rounded-md text-sm font-semibold",
+    className: "p-1.5 rounded-md",
     style: {
-      background: 'var(--tomato)',
-      color: 'var(--flour)'
+      background: confirm ? 'var(--tomato)' : 'var(--crust-2)',
+      color: confirm ? 'var(--flour)' : 'var(--tomato)'
     }
-  }, "Add")));
+  }, /*#__PURE__*/React.createElement(IconTrash, {
+    size: 13
+  })))));
 }
 
 /* ----------------------------- Setup ----------------------------- */
@@ -1562,19 +1823,26 @@ function Setup({
   onRemoveMenu,
   onAddIngredient,
   onRemoveIngredient,
+  onUpdateIngredientPrice,
   onClearLogs,
   onAddTeam,
-  onRemoveTeam
+  onRemoveTeam,
+  onImportMenu,
+  onImportToppings,
+  onImportHistory
 }) {
   const [name, setName] = useState(settings.businessName || '');
   const [mName, setMName] = useState('');
   const [mPrice, setMPrice] = useState('');
   const [mCat, setMCat] = useState(CATEGORIES[0]);
   const [iName, setIName] = useState('');
-  const [iUnit, setIUnit] = useState('');
+  const [iUnit, setIUnit] = useState(UNITS[0]);
   const [iStock, setIStock] = useState('');
   const [iThreshold, setIThreshold] = useState('');
+  const [iPrice, setIPrice] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmMenu, setConfirmMenu] = useState(false);
+  const [confirmHistory, setConfirmHistory] = useState(false);
   useEffect(() => {
     setName(settings.businessName || '');
   }, [settings.businessName]);
@@ -1586,7 +1854,84 @@ function Setup({
     authorizedUsers: authorizedUsers,
     onAdd: onAddTeam,
     onRemove: onRemoveTeam
-  }), /*#__PURE__*/React.createElement("div", {
+  }), isOwner && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    },
+    className: "p-4 mb-5"
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-1"
+  }, "Import your real data"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs mb-3"
+  }, "One-time actions from your product list and sales notes. Each is safe to use once — using them again will duplicate entries."), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between gap-3 flex-wrap"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs"
+  }, "Replaces your menu with the 11 official items (pastas, salsa, pizzas congeladas y horneadas)."), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (confirmMenu) {
+        onImportMenu();
+        setConfirmMenu(false);
+      } else {
+        setConfirmMenu(true);
+        setTimeout(() => setConfirmMenu(false), 4000);
+      }
+    },
+    className: "px-3 py-2 rounded-md text-xs font-semibold flex-shrink-0",
+    style: {
+      background: confirmMenu ? 'var(--tomato)' : 'var(--crust-2)',
+      color: confirmMenu ? 'var(--flour)' : 'var(--flour)'
+    }
+  }, confirmMenu ? 'Click again to confirm' : 'Update to official product list')), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between gap-3 flex-wrap"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs"
+  }, "Adds the 8 customizable toppings (jamón, pepperoni, hongos...) alongside your current ingredients."), /*#__PURE__*/React.createElement("button", {
+    onClick: onImportToppings,
+    className: "px-3 py-2 rounded-md text-xs font-semibold flex-shrink-0",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)'
+    }
+  }, "Add real toppings")), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between gap-3 flex-wrap"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs"
+  }, "Imports your 3 logged sales (Jul 11–23) and 3 pending pedidos from your notes."), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (confirmHistory) {
+        onImportHistory();
+        setConfirmHistory(false);
+      } else {
+        setConfirmHistory(true);
+        setTimeout(() => setConfirmHistory(false), 4000);
+      }
+    },
+    className: "px-3 py-2 rounded-md text-xs font-semibold flex-shrink-0",
+    style: {
+      background: confirmHistory ? 'var(--tomato)' : 'var(--crust-2)',
+      color: confirmHistory ? 'var(--flour)' : 'var(--flour)'
+    }
+  }, confirmHistory ? 'Click again to confirm' : 'Import sales & order history')))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'var(--crust)',
       border: '1px solid var(--line)',
@@ -1721,20 +2066,45 @@ function Setup({
     className: "flex flex-col gap-1.5 mb-3"
   }, ingredients.map(i => /*#__PURE__*/React.createElement("div", {
     key: i.id,
-    className: "flex items-center justify-between text-sm px-3 py-2 rounded-md",
+    className: "flex items-center justify-between gap-2 text-sm px-3 py-2 rounded-md flex-wrap",
     style: {
       background: 'var(--crust-2)'
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       color: 'var(--flour)'
-    }
+    },
+    className: "flex-1 min-w-[140px]"
   }, i.name, " ", /*#__PURE__*/React.createElement("span", {
     style: {
       color: 'var(--flour-dim)'
     },
     className: "font-mono text-xs"
-  }, "· ", i.stock, " ", i.unit, " · min ", i.threshold)), /*#__PURE__*/React.createElement("button", {
+  }, "· ", i.stock, " ", i.unit, " · min ", i.threshold)), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1 flex-shrink-0"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs font-mono"
+  }, "₡"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "0",
+    defaultValue: i.price || '',
+    placeholder: "0",
+    onBlur: e => onUpdateIngredientPrice(i.id, e.target.value),
+    className: "w-16 px-1.5 py-1 rounded text-xs font-mono outline-none",
+    style: {
+      background: 'var(--bg)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs"
+  }, "/", i.unit)), /*#__PURE__*/React.createElement("button", {
     onClick: () => onRemoveIngredient(i.id),
     style: {
       color: 'var(--tomato)'
@@ -1742,7 +2112,7 @@ function Setup({
   }, /*#__PURE__*/React.createElement(IconTrash, {
     size: 14
   }))))), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-2 sm:grid-cols-5 gap-2"
+    className: "grid grid-cols-2 sm:grid-cols-3 gap-2"
   }, /*#__PURE__*/React.createElement("input", {
     value: iName,
     onChange: e => setIName(e.target.value),
@@ -1753,17 +2123,37 @@ function Setup({
       color: 'var(--flour)',
       border: '1px solid var(--line)'
     }
-  }), /*#__PURE__*/React.createElement("input", {
+  }), /*#__PURE__*/React.createElement("select", {
     value: iUnit,
     onChange: e => setIUnit(e.target.value),
-    placeholder: "Unit (kg, l...)",
     className: "px-3 py-2 rounded-md text-sm outline-none",
     style: {
       background: 'var(--crust-2)',
       color: 'var(--flour)',
       border: '1px solid var(--line)'
     }
-  }), /*#__PURE__*/React.createElement("input", {
+  }, UNITS.map(u => /*#__PURE__*/React.createElement("option", {
+    key: u,
+    value: u
+  }, u))), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1 items-center"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs"
+  }, "₡"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: iPrice,
+    onChange: e => setIPrice(e.target.value),
+    placeholder: "Cost/unit",
+    className: "flex-1 px-2 py-2 rounded-md text-sm outline-none font-mono",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  })), /*#__PURE__*/React.createElement("input", {
     type: "number",
     value: iStock,
     onChange: e => setIStock(e.target.value),
@@ -1789,22 +2179,23 @@ function Setup({
     onClick: () => {
       const s = parseFloat(iStock) || 0;
       const t = parseFloat(iThreshold) || 0;
+      const p = parseFloat(iPrice) || 0;
       if (iName && iUnit) {
-        onAddIngredient(iName, iUnit, s, t);
+        onAddIngredient(iName, iUnit, s, t, p);
         setIName('');
-        setIUnit('');
         setIStock('');
         setIThreshold('');
+        setIPrice('');
       }
     },
-    className: "px-3 py-2 rounded-md",
+    className: "px-3 py-2 rounded-md flex items-center justify-center gap-1.5 text-sm font-semibold",
     style: {
       background: 'var(--tomato)',
       color: 'var(--flour)'
     }
   }, /*#__PURE__*/React.createElement(IconPlus, {
     size: 15
-  })))), isOwner && /*#__PURE__*/React.createElement("div", {
+  }), " Add"))), isOwner && /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'var(--crust)',
       border: '1px solid var(--tomato-dim)',
@@ -1821,7 +2212,7 @@ function Setup({
       color: 'var(--flour-dim)'
     },
     className: "text-xs mb-3"
-  }, "Clears sales, orders, ingredient usage, and expense history for everyone. Menu and ingredients are kept."), /*#__PURE__*/React.createElement("button", {
+  }, "Clears sales, orders, ingredient usage, and expense history for everyone. Menu and ingredients are kept. For deleting single entries, use Reports → All entries instead."), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       if (confirmClear) {
         onClearLogs();
@@ -1837,6 +2228,93 @@ function Setup({
       color: confirmClear ? 'var(--flour)' : 'var(--tomato)'
     }
   }, confirmClear ? 'Click again to confirm' : 'Clear all activity')));
+}
+
+/* ----------------------------- Team access ----------------------------- */
+
+function TeamAccess({
+  ownerEmail,
+  authorizedUsers,
+  onAdd,
+  onRemove
+}) {
+  const [email, setEmail] = useState('');
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--crust)',
+      border: '1px solid var(--line)',
+      borderRadius: 10
+    },
+    className: "p-4 mb-5"
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-1"
+  }, "Team access"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs mb-3"
+  }, "Only people signed in with an approved Google account can open this dashboard. You control that list here."), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-1.5 mb-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between text-sm px-3 py-2 rounded-md",
+    style: {
+      background: 'var(--crust-2)'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, ownerEmail, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--basil)'
+    },
+    className: "text-xs font-mono"
+  }, "· owner"))), authorizedUsers.map(u => /*#__PURE__*/React.createElement("div", {
+    key: u.id,
+    className: "flex items-center justify-between text-sm px-3 py-2 rounded-md",
+    style: {
+      background: 'var(--crust-2)'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour)'
+    }
+  }, u.id), /*#__PURE__*/React.createElement("button", {
+    onClick: () => onRemove(u.id),
+    style: {
+      color: 'var(--tomato)'
+    }
+  }, /*#__PURE__*/React.createElement(IconTrash, {
+    size: 14
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: email,
+    onChange: e => setEmail(e.target.value),
+    placeholder: "colleague@gmail.com",
+    className: "flex-1 px-3 py-2 rounded-md text-sm outline-none",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour)',
+      border: '1px solid var(--line)'
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      const e2 = email.trim().toLowerCase();
+      if (e2.includes('@')) {
+        onAdd(e2);
+        setEmail('');
+      }
+    },
+    className: "px-4 py-2 rounded-md text-sm font-semibold",
+    style: {
+      background: 'var(--tomato)',
+      color: 'var(--flour)'
+    }
+  }, "Add")));
 }
 
 /* ----------------------------- Reports ----------------------------- */
@@ -1860,7 +2338,11 @@ const REPORT_PRESETS = [{
 function Reports({
   sales,
   expenses,
-  businessName
+  orders,
+  usage,
+  businessName,
+  theme,
+  onDeleteEntry
 }) {
   const [preset, setPreset] = useState('month');
   const [from, setFrom] = useState('');
@@ -1899,6 +2381,8 @@ function Reports({
   };
   const rSales = useMemo(() => sales.filter(s => inRange(s.time)), [sales, range]);
   const rExpenses = useMemo(() => expenses.filter(e => inRange(e.time)), [expenses, range]);
+  const rOrders = useMemo(() => orders.filter(o => inRange(o.time)), [orders, range]);
+  const rUsage = useMemo(() => usage.filter(u => inRange(u.time)), [usage, range]);
   const salesTotal = rSales.reduce((a, s) => a + s.total, 0);
   const expensesTotal = rExpenses.reduce((a, e) => a + e.amount, 0);
   const profit = salesTotal - expensesTotal;
@@ -1945,6 +2429,54 @@ function Reports({
     }));
     return Object.entries(m).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 8);
   }, [rSales]);
+  const allEntries = useMemo(() => {
+    const items = [];
+    rSales.forEach(s => items.push({
+      id: s.id,
+      col: 'sales',
+      time: s.time,
+      by: s.by,
+      title: `Sale — ${s.items.map(it => `${it.qty}× ${it.name}`).join(', ')}`,
+      sub: s.notes,
+      amount: fmtCRC(s.total),
+      tone: 'basil',
+      typeLabel: 'Sale'
+    }));
+    rOrders.forEach(o => items.push({
+      id: o.id,
+      col: 'orders',
+      time: o.time,
+      by: o.by,
+      title: `Order — ${o.customer || 'Walk-in'} (${o.status})`,
+      sub: o.notes,
+      amount: o.items.map(it => `${it.qty}× ${it.name}`).join(', '),
+      tone: 'semolina',
+      typeLabel: 'Order'
+    }));
+    rExpenses.forEach(e => items.push({
+      id: e.id,
+      col: 'expenses',
+      time: e.time,
+      by: e.by,
+      title: e.description || e.category,
+      sub: e.auto ? 'Auto-generated from ingredient use' : '',
+      amount: fmtCRC(e.amount),
+      tone: 'tomato',
+      typeLabel: 'Expense'
+    }));
+    rUsage.forEach(u => items.push({
+      id: u.id,
+      col: 'usageEvents',
+      time: u.time,
+      by: u.by,
+      title: `${u.type === 'restock' ? 'Restocked' : 'Used'} ${u.ingredientName}`,
+      sub: '',
+      amount: `${u.qty} ${u.unit}`,
+      tone: u.type === 'restock' ? 'basil' : 'flour-dim',
+      typeLabel: 'Ingredient'
+    }));
+    return items.sort((a, b) => new Date(b.time) - new Date(a.time));
+  }, [rSales, rOrders, rExpenses, rUsage]);
   const rangeLabel = `${range.start.toLocaleDateString('es-CR')} – ${new Date(range.end.getTime() - 86400000).toLocaleDateString('es-CR')}`;
   const exportSales = () => {
     const rows = [['Date', 'Logged by', 'Items', 'Payment', 'Total (CRC)']];
@@ -2041,7 +2573,8 @@ function Reports({
     },
     className: "text-sm font-semibold mb-3"
   }, "Sales per day"), /*#__PURE__*/React.createElement(SalesTrendChart, {
-    data: daily
+    data: daily,
+    theme: theme
   })), /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6"
   }, /*#__PURE__*/React.createElement("div", {
@@ -2160,8 +2693,88 @@ function Reports({
     style: {
       color: 'var(--flour-dim)'
     },
-    className: "text-xs mt-2"
-  }, "CSV files open directly in Excel or Google Sheets — handy for your accountant."));
+    className: "text-xs mt-2 mb-6"
+  }, "CSV files open directly in Excel or Google Sheets — handy for your accountant."), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm font-semibold mb-1"
+  }, "All entries"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs mb-3"
+  }, "Everything logged in this date range. Tap the trash icon twice to delete a mistaken entry."), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-2",
+    style: {
+      maxHeight: 480,
+      overflowY: 'auto',
+      paddingRight: 4
+    }
+  }, allEntries.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-sm"
+  }, "Nothing in this range."), allEntries.map(item => /*#__PURE__*/React.createElement(EntryRow, {
+    key: item.col + item.id,
+    item: item,
+    onDelete: onDeleteEntry
+  }))));
+}
+function EntryRow({
+  item,
+  onDelete
+}) {
+  const [confirm, setConfirm] = useState(false);
+  return /*#__PURE__*/React.createElement(Ticket, {
+    style: {
+      padding: '10px 14px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour)'
+    },
+    className: "text-sm truncate"
+  }, item.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs font-mono"
+  }, fmtTime(item.time), " · ", item.by || 'Team', " · ", item.typeLabel), item.sub && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--flour-dim)'
+    },
+    className: "text-xs italic mt-0.5"
+  }, item.sub)), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 flex-shrink-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-mono text-sm",
+    style: {
+      color: `var(--${item.tone})`
+    }
+  }, item.amount), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (confirm) {
+        onDelete(item.col, item.id);
+        setConfirm(false);
+      } else {
+        setConfirm(true);
+        setTimeout(() => setConfirm(false), 3000);
+      }
+    },
+    className: "p-1.5 rounded-md",
+    style: {
+      background: confirm ? 'var(--tomato)' : 'var(--crust-2)',
+      color: confirm ? 'var(--flour)' : 'var(--tomato)'
+    }
+  }, /*#__PURE__*/React.createElement(IconTrash, {
+    size: 13
+  })))));
 }
 
 /* ----------------------------- Auth screens ----------------------------- */
@@ -2343,12 +2956,26 @@ function App() {
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState('dashboard');
   const [toast, setToast] = useState('');
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ppz-theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+    } catch (e) {}
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  });
   const toastTimer = useRef(null);
   const showToast = useCallback(msg => {
     setToast(msg);
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(''), 2200);
   }, []);
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem('ppz-theme', theme);
+    } catch (e) {}
+  }, [theme]);
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
   useEffect(() => auth.onAuthStateChanged(u => setUser(u)), []);
   useEffect(() => {
     if (user === null) {
@@ -2388,7 +3015,7 @@ function App() {
     name: 'Team',
     email: ''
   };
-  const completeSale = async (cart, total, payment) => {
+  const completeSale = async (cart, total, payment, notes) => {
     const w = who();
     await db.collection('sales').add({
       time: new Date().toISOString(),
@@ -2396,7 +3023,8 @@ function App() {
       byEmail: w.email,
       items: cart,
       total,
-      payment
+      payment,
+      notes: notes || ''
     });
     showToast('Sale logged');
   };
@@ -2435,7 +3063,21 @@ function App() {
       qty,
       type
     });
-    showToast(type === 'restock' ? `Restocked ${ing.name}` : `Logged ${ing.name} used`);
+    if (type === 'use' && ing.price > 0) {
+      const cost = +(qty * ing.price).toFixed(2);
+      await db.collection('expenses').add({
+        time: new Date().toISOString(),
+        by: w.name,
+        byEmail: w.email,
+        description: `${qty} ${ing.unit} de ${ing.name}`,
+        category: 'Ingredients',
+        amount: cost,
+        auto: true
+      });
+      showToast(`Used ${ing.name} · ${fmtCRC(cost)} added to expenses`);
+    } else {
+      showToast(type === 'restock' ? `Restocked ${ing.name}` : `Logged ${ing.name} used`);
+    }
   };
   const addExpense = async (description, category, amount) => {
     const w = who();
@@ -2468,17 +3110,24 @@ function App() {
   const removeMenuItem = async id => {
     await db.collection('menu').doc(id).delete();
   };
-  const addIngredient = async (name, unit, stock, threshold) => {
+  const addIngredient = async (name, unit, stock, threshold, price) => {
     await db.collection('ingredients').add({
       name,
       unit,
       stock,
-      threshold
+      threshold,
+      price: price || 0
     });
     showToast('Ingredient added');
   };
   const removeIngredient = async id => {
     await db.collection('ingredients').doc(id).delete();
+  };
+  const updateIngredientPrice = async (id, value) => {
+    await db.collection('ingredients').doc(id).update({
+      price: parseFloat(value) || 0
+    });
+    showToast('Price updated');
   };
   const addTeamMember = async email => {
     await db.collection('authorizedUsers').doc(email).set({
@@ -2493,6 +3142,53 @@ function App() {
   const clearLogs = async () => {
     await Promise.all([clearCollection('sales', sales), clearCollection('orders', orders), clearCollection('usageEvents', usage), clearCollection('expenses', expenses)]);
     showToast('Activity cleared');
+  };
+  const deleteEntry = async (col, id) => {
+    await db.collection(col).doc(id).delete();
+    showToast('Deleted');
+  };
+  const importMenu = async () => {
+    await clearCollection('menu', menu);
+    const batch = db.batch();
+    OFFICIAL_MENU.forEach(m => batch.set(db.collection('menu').doc(), m));
+    await batch.commit();
+    showToast('Menu updated to official product list');
+  };
+  const importToppings = async () => {
+    const existingNames = new Set(ingredients.map(i => i.name.toLowerCase()));
+    const toAdd = TOPPING_INGREDIENTS.filter(t => !existingNames.has(t.name.toLowerCase()));
+    if (toAdd.length === 0) {
+      showToast('Toppings already added');
+      return;
+    }
+    const batch = db.batch();
+    toAdd.forEach(t => batch.set(db.collection('ingredients').doc(), t));
+    await batch.commit();
+    showToast(`Added ${toAdd.length} ingredient(s)`);
+  };
+  const importHistory = async () => {
+    const batch = db.batch();
+    const w = who();
+    HISTORICAL_SALES.forEach(s => batch.set(db.collection('sales').doc(), {
+      time: s.time,
+      by: w.name,
+      byEmail: w.email,
+      items: s.items,
+      total: s.total,
+      payment: s.payment,
+      notes: s.notes || ''
+    }));
+    HISTORICAL_ORDERS.forEach(o => batch.set(db.collection('orders').doc(), {
+      time: o.time,
+      by: w.name,
+      byEmail: w.email,
+      customer: o.customer,
+      items: o.items,
+      status: o.status,
+      notes: o.notes
+    }));
+    await batch.commit();
+    showToast('Imported sales & order history');
   };
   const signIn = () => auth.signInWithPopup(googleProvider).catch(err => console.error(err));
   const signOutUser = () => auth.signOut();
@@ -2592,13 +3288,29 @@ function App() {
       color: 'var(--flour-dim)'
     },
     className: "text-xs truncate mb-2"
-  }, user.email), /*#__PURE__*/React.createElement("button", {
+  }, user.email), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 mb-3"
+  }, /*#__PURE__*/React.createElement("button", {
     onClick: signOutUser,
-    className: "text-xs underline mb-3",
+    className: "text-xs underline",
     style: {
       color: 'var(--flour-dim)'
     }
-  }, "Sign out"), /*#__PURE__*/React.createElement("div", {
+  }, "Sign out"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--flour-dim)'
+    }
+  }, "·"), /*#__PURE__*/React.createElement("button", {
+    onClick: toggleTheme,
+    className: "flex items-center gap-1 text-xs",
+    style: {
+      color: 'var(--flour-dim)'
+    }
+  }, theme === 'dark' ? /*#__PURE__*/React.createElement(IconSun, {
+    size: 13
+  }) : /*#__PURE__*/React.createElement(IconMoon, {
+    size: 13
+  }), " ", theme === 'dark' ? 'Light' : 'Dark')), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-1.5 text-xs",
     style: {
       color: 'var(--flour-dim)'
@@ -2630,14 +3342,27 @@ function App() {
       fontSize: 16,
       fontWeight: 800
     }
-  }, settings.businessName)), /*#__PURE__*/React.createElement("button", {
+  }, settings.businessName)), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: toggleTheme,
+    className: "p-1.5 rounded-md",
+    style: {
+      background: 'var(--crust-2)',
+      color: 'var(--flour-dim)'
+    }
+  }, theme === 'dark' ? /*#__PURE__*/React.createElement(IconSun, {
+    size: 14
+  }) : /*#__PURE__*/React.createElement(IconMoon, {
+    size: 14
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: signOutUser,
     className: "text-xs px-2 py-1 rounded-md",
     style: {
       background: 'var(--crust-2)',
       color: 'var(--flour-dim)'
     }
-  }, "Sign out")), /*#__PURE__*/React.createElement("main", {
+  }, "Sign out"))), /*#__PURE__*/React.createElement("main", {
     className: "flex-1 p-4 md:p-6 overflow-x-hidden pb-20 md:pb-6"
   }, tab === 'dashboard' && /*#__PURE__*/React.createElement(Dashboard, {
     sales: sales,
@@ -2645,7 +3370,8 @@ function App() {
     ingredients: ingredients,
     expenses: expenses,
     usage: usage,
-    businessName: settings.businessName
+    businessName: settings.businessName,
+    theme: theme
   }), tab === 'sale' && /*#__PURE__*/React.createElement(LogSale, {
     menu: menu,
     onCompleteSale: completeSale
@@ -2653,17 +3379,24 @@ function App() {
     orders: orders,
     menu: menu,
     onCreate: createOrder,
-    onAdvance: advanceOrder
+    onAdvance: advanceOrder,
+    onDelete: id => deleteEntry('orders', id)
   }), tab === 'inventory' && /*#__PURE__*/React.createElement(Inventory, {
     ingredients: ingredients,
-    onLog: logIngredient
+    onLog: logIngredient,
+    onUpdatePrice: updateIngredientPrice
   }), tab === 'expenses' && /*#__PURE__*/React.createElement(Expenses, {
     expenses: expenses,
-    onAdd: addExpense
+    onAdd: addExpense,
+    onDelete: id => deleteEntry('expenses', id)
   }), tab === 'reports' && /*#__PURE__*/React.createElement(Reports, {
     sales: sales,
     expenses: expenses,
-    businessName: settings.businessName || 'Pastas-Para-Pizza'
+    orders: orders,
+    usage: usage,
+    businessName: settings.businessName || 'Pastas-Para-Pizza',
+    theme: theme,
+    onDeleteEntry: deleteEntry
   }), tab === 'setup' && /*#__PURE__*/React.createElement(Setup, {
     settings: settings,
     menu: menu,
@@ -2676,9 +3409,13 @@ function App() {
     onRemoveMenu: removeMenuItem,
     onAddIngredient: addIngredient,
     onRemoveIngredient: removeIngredient,
+    onUpdateIngredientPrice: updateIngredientPrice,
     onClearLogs: clearLogs,
     onAddTeam: addTeamMember,
-    onRemoveTeam: removeTeamMember
+    onRemoveTeam: removeTeamMember,
+    onImportMenu: importMenu,
+    onImportToppings: importToppings,
+    onImportHistory: importHistory
   })), /*#__PURE__*/React.createElement("nav", {
     className: "md:hidden fixed bottom-0 left-0 right-0 flex justify-around py-2 z-40",
     style: {
