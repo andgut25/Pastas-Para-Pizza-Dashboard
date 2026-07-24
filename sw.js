@@ -1,9 +1,9 @@
 // Service worker for Pastas Para Pizza dashboard.
-// Strategy: network first, falling back to the last cached copy when offline.
-// This lets the app itself open without a connection after the first visit;
-// Firestore's own offline persistence handles the data side.
+// Strategy: network first (with caching fully bypassed, so updates are never
+// stale), falling back to the last cached copy only when there's no
+// connection at all. Firestore's own offline persistence handles the data.
 
-const CACHE = 'ppz-cache-v1';
+const CACHE = 'ppz-cache-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -24,7 +24,7 @@ self.addEventListener('fetch', (event) => {
   if (url.includes('firestore.googleapis.com') || url.includes('identitytoolkit') || url.includes('securetoken')) return;
 
   event.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-store' })
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
